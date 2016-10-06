@@ -1,3 +1,5 @@
+from . import logger
+
 class Error(Exception):
   pass
 class ValidationError(Error):
@@ -7,7 +9,7 @@ class ValidationError(Error):
 
 class Validation:
   def __init__(self):
-    self.validations = {}
+    self.__validations = {}
 
   def add_validations(self, *args, **kwargs):
     if not args:
@@ -54,38 +56,44 @@ class Validation:
 
   def __add_validations(self, field, validation, value):
     try:
-      # don't check it here... instead check it during validations
-      # save should pass in the value to validate
-      self.getattr(field)
+      getattr(self, field)
     except AttributeError:
       raise ValidationError("Validation error", "Has no field {}".format(field))
       
-    if field not in self.validations:
-      self.validations[field] = {}
-      self.validation[field][validation] = value
+    if field not in self.__validations:
+      self.__validations[field] = {}
+    self.__validations[field][validation] = value
 
   def set_validations(self):
     pass
 
   def presence(self, field, criteria):
-    return not not self.getattr(field)
+    validation = getattr(self, field)
+    if not validation:
+      logger.error("Validation Error: {} must be present".format(field))
+    return validation
 
   def uniqueness(self, field, criteria):
     query_str = """
       SELECT * FROM {}
-      WHERE {} = {} 
+      WHERE {} = '{}' 
     """.format(
       self.table_name(), 
       field, 
-      self.getattr(field))
-
-    return not not self.search_one(query_str)
+      getattr(self, field))
+    validation = not self.search_one(query_str)
+    if not validation:
+      logger.error("Validation Error: {} must be unique".format(field))
+    return validation
 
   def inclusion(self, field, criteria):
-    return self.getattr(field) in criteria
+    validation = getattr(self, field) in criteria
+    if not validation:
+      logger.error("Validation Error: {} must be one of {}".format(field, criteria))
+    return validation
 
   def length(self, field, criteria):
-    val = self.getattr(field)
+    val = getattr(self, field)
     if isinstance(val, str):
       raise ValidationError("Type mismatch", "Length validation can only apply on strings")
 
@@ -95,10 +103,13 @@ class Validation:
     if "min" in criteria:
       b2 = val.length >= criteria["min"]
 
-    return b1 and b2
+    validation = b1 and b2
+    if not validation:
+      logger.error("Validation Error: {} must have a length of...")
+    return validation
 
   def range(self, field, criteria):
-    val = self.getattr(field)
+    val = getattr(self, field)
     if isinstance(val, int):
       raise ValidationError("Type mismatch", "Length validation can only apply on strings")
 
@@ -111,13 +122,13 @@ class Validation:
     return b1 and b2
 
   def validate(self):
-    if not self.validations:
+    if not self.__validations:
       return True
 
-    for field, conditions in self.validations.items():
-      for condition, criteria in conditions:
+    for field, conditions in self.__validations.items():
+      for condition, criteria in conditions.items():
         method = getattr(self, condition)
-        b = method(field, criteria)
-        if not b:
+        if not method(field, criteria):
           return False
 
+    return True

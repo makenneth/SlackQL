@@ -1,4 +1,6 @@
 from .relation import Relation
+from . import logger
+
 class Searchable:
   def find(self, fid):
     return self.search_one("""SELECT * FROM {} WHERE id = {}
@@ -30,10 +32,10 @@ class Searchable:
     if isinstance(kwargs, str):
       where_str = kwargs
     else:
-      for i, (key, val) in enumerate(kwargs.list()):
+      for i, (key, val) in enumerate(kwargs.items()):
         if not i == 0:
           where_str += " and "
-        where_str += "{} = {}".format(key, val)
+        where_str += "{} = '{}'".format(key, val)
 
     return Relation(self.search_all).where(where_str)
 

@@ -2,16 +2,17 @@ import sqlite3
 from .relation import Relation
 from .searchable import Searchable
 from .validation import Validation
-
+from . import logger
+from time import time
 class Collection(Searchable, Validation):
   def columns(self):
     if not self.__columns:
       self.__cursor.execute("SELECT * FROM {} LIMIT 0".format(self.__class__.__name__))
       self.__columns = [tuple[0] for tuple in self.__cursor.description]
-
     return self.__columns
 
   def __init__(self, **kwargs):
+    super(Collection, self).__init__()
     self.set_validations()
     self.__connection = sqlite3.connect("twitter.db")
     self.__cursor = self.__connection.cursor()
@@ -19,13 +20,13 @@ class Collection(Searchable, Validation):
       setattr(self, column, kwargs[column] if column in kwargs else None)
 
   def table_name(self, *args):
-    if not self.table:   
+    if not self.__table:   
       if args:
-        self.table = args[0]
+        self.__table = args[0]
       else:
-        self.table = self.__class__.__name__
+        self.__table = self.__class__.__name__
 
-    return self.table
+    return self.__table
 
   def insert(self, **kwargs):
     values, columns = "", ""
@@ -37,17 +38,17 @@ class Collection(Searchable, Validation):
       
       columns += "'" + key + "'"
       values += "'" + kwargs[key] + "'"
-
-    sql_str = """
-      INSERT INTO {table_name} ({columns}) VALUES ({values});
-      """.format(
+    logger.info("Transaction begin:")
+    start = time()
+    sql_str = """\nINSERT INTO {table_name} ({columns}) VALUES ({values});""".format(
         table_name=self.table_name(),
         columns=columns, 
         values=values
         )
-
+    logger.info(sql_str)
     self.__cursor.execute(sql_str)
     self.__connection.commit()
+    logger.info("Transaction Commited: {0:.2f}ms".format((time() - start) * 1000))
     self.__connection.close()
     self.id = self.__cursor.lastrowid
     return True
@@ -64,7 +65,7 @@ class Collection(Searchable, Validation):
     sql_str = """
       UPDATE {table_name} SET {queries}
     """.format(self.table_name(), values)
-
+    logger.info(sql_str)
     self.__cursor.execute(sql_str)
     self.__connection.commit()
     self.__connection.close()
@@ -80,7 +81,10 @@ class Collection(Searchable, Validation):
       if key in self.columns():
         setattr(self, key, val)
 
-    self.validate()
+    if not self.validate():
+      logger.warning("ROLLBACK Transaction.")
+      return self
+
     for key, val in self:
       if val:
         attrs[key] = val
@@ -92,7 +96,7 @@ class Collection(Searchable, Validation):
 
 
   def search_all(self, query):
-    self.__cursor.execute(self.build_query())
+    self.__cursor.execute(self.build_query(query))
     return self.get_result()
 
   def search_one(self, query):
@@ -101,9 +105,8 @@ class Collection(Searchable, Validation):
     columns = [tuple[0] for tuple in self.__cursor.description]
     result = self.__cursor.fetchone()
     if not result:
-      print("No such entry")
-      for column in columns:
-        attr[column] = None
+      logger.warning("No such entry found")
+      return None
     else:
       for i in range(len(result)):
         attr[columns[i]] = result[i] 
@@ -134,7 +137,7 @@ class Collection(Searchable, Validation):
       SELECT {} FROM {}{};
       """.format(query["select"] if "select" in query else "*", 
         self.table_name(), conditions)
-
+    logger.info(query_str)
     return query_str
 
   def __iter__(self):
