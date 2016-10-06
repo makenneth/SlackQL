@@ -38,7 +38,7 @@ class Relation(object):
   def order(self, *order_str, **kwargs):
     if kwargs:
       if "ASC" not in kwargs and "DESC" not in kwargs:
-        print("Warning: it may not product desired outcome if you do not provide ASC or DESC as a key")
+        print("Warning: it may not produce a desired outcome if you do not provide ASC or DESC as a key")
       for key, value in kwargs.items():
         if key == "ASC" or key == "DESC":
          order_str = ("{} {}".format(value, key),)

@@ -6,13 +6,17 @@ ActiveRecord in Python.
 - [ ] tests
 
 - Find
+```python
 >>> p = Post.find(5)
 >>> print p
 <class 'Post' {id=5, title="Hello world" ...}>
+```
 
 - Find_by
+```python
 >>> p = Post.find_by(title="Hello world")
 <class 'Post' {id=3, title="Hello world" ...}>
+```
 
 ## Lazy Evaluation
 ```python
@@ -68,7 +72,3 @@ Posts.limit(5)
 ```
 
 - Allow None
-
-class Tweet(Collection):
-  def set_validations(self):
-    self.add_validations("title", "body", presence=True)

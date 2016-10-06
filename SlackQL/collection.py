@@ -1,9 +1,9 @@
 import sqlite3
 from .relation import Relation
-from .search import Search
+from .searchable import Searchable
 from .validation import Validation
 
-class Collection(Search, Validation):
+class Collection(Searchable, Validation):
   def columns(self):
     if not self.__columns:
       self.__cursor.execute("SELECT * FROM {} LIMIT 0".format(self.__class__.__name__))
@@ -12,6 +12,7 @@ class Collection(Search, Validation):
     return self.__columns
 
   def __init__(self, **kwargs):
+    self.set_validations()
     self.__connection = sqlite3.connect("twitter.db")
     self.__cursor = self.__connection.cursor()
     for column in self.columns():
@@ -79,40 +80,20 @@ class Collection(Search, Validation):
       if key in self.columns():
         setattr(self, key, val)
 
+    self.validate()
     for key, val in self:
       if val:
         attrs[key] = val
-
 
     if "id" in attrs:
       return self.update(**attrs)
     else:
       return self.insert(**attrs)
 
+
   def search_all(self, query):
-    conditions = ""
-    if "where" in query:
-      conditions += " WHERE {}".format(query["where"])
-
-    if "order" in query:
-      conditions += " ORDER BY {}".format(query["order"])
-    if "limit" in query:
-      conditions += " LIMIT {}".format(query["limit"])
-    query_str = """
-      SELECT {} FROM {}{};
-      """.format(query["select"] if "select" in query else "*", 
-        self.table_name(), conditions)
-    self.__cursor.execute(query_str)
-
-    result, attr = [], {} 
-    columns = [tuple[0] for tuple in self.__cursor.description]
-    for item in self.__cursor.fetchall():
-      for i in range(len(item)):
-        attr[columns[i]] = item[i] 
-      
-      result.append(type(self.__class__.__name__, (), attr))
-
-    return result
+    self.__cursor.execute(self.build_query())
+    return self.get_result()
 
   def search_one(self, query):
     self.__cursor.execute(query)
@@ -128,6 +109,33 @@ class Collection(Search, Validation):
         attr[columns[i]] = result[i] 
 
     return type(self.__class__.__name__, (), attr)
+
+  def get_result(self):
+    result, attr = [], {} 
+    columns = [tuple[0] for tuple in self.__cursor.description]
+    for item in self.__cursor.fetchall():
+      for i in range(len(item)):
+        attr[columns[i]] = item[i] 
+      
+      result.append(type(self.__class__.__name__, (), attr))
+
+    return result
+
+  def build_query(self, query):
+    conditions = ""
+    if "where" in query:
+      conditions += " WHERE {}".format(query["where"])
+
+    if "order" in query:
+      conditions += " ORDER BY {}".format(query["order"])
+    if "limit" in query:
+      conditions += " LIMIT {}".format(query["limit"])
+    query_str = """
+      SELECT {} FROM {}{};
+      """.format(query["select"] if "select" in query else "*", 
+        self.table_name(), conditions)
+
+    return query_str
 
   def __iter__(self):
     for key, val in self.__dict__.items():

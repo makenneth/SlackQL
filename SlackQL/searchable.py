@@ -1,5 +1,5 @@
 from .relation import Relation
-class Search:
+class Searchable:
   def find(self, fid):
     return self.search_one("""SELECT * FROM {} WHERE id = {}
       """.format(self.table_name(), fid))
