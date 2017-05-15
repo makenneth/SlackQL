@@ -62,12 +62,12 @@ class Collection(Searchable, Validation):
 
       values += "'{column}={value}'".format(column=key, value=kwargs[key]) 
 
-    sql_str = """
-      UPDATE {table_name} SET {queries}
-    """.format(self.table_name(), values)
+    sql_str = """\nUPDATE {table_name} SET {queries}""".format(self.table_name(), values)
+    logger.info("Transaction begin:")
     logger.info(sql_str)
     self.__cursor.execute(sql_str)
     self.__connection.commit()
+    logger.info("Transaction Commited: {0:.2f}ms".format((time() - start) * 1000))
     self.__connection.close()
 
     return True
@@ -133,9 +133,7 @@ class Collection(Searchable, Validation):
       conditions += " ORDER BY {}".format(query["order"])
     if "limit" in query:
       conditions += " LIMIT {}".format(query["limit"])
-    query_str = """
-      SELECT {} FROM {}{};
-      """.format(query["select"] if "select" in query else "*", 
+    query_str = """SELECT {} FROM {}{};""".format(query["select"] if "select" in query else "*",
         self.table_name(), conditions)
     logger.info(query_str)
     return query_str

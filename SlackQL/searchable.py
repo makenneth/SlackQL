@@ -13,7 +13,7 @@ class Searchable:
       conditions.append("{} = '{}'".format(key, val))
 
     query = query.format(self.table_name(), " and ".join(conditions))
-    
+
     return self.search_one(query)
 
   def all(self):
@@ -46,8 +46,6 @@ class Searchable:
       raise ValueError("Argument passed into limit must be an int")
 
   def order(self, **kwargs):
-    if "ASC" not in kwargs and "DESC" not in kwargs:
-      print("Warning: it may not product desired outcome if you do not provide ASC or DESC as a key")
     order_str = None
     for key, value in kwargs.items():
       if key == "ASC" or key == "DESC":

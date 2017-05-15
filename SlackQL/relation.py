@@ -2,6 +2,7 @@ class Relation(object):
   def __init__(self, callback):
     self.callback = callback
     self.__conditions = {}
+    self.__associations = {}
 
   def __setitem__(self, *args):
     return self.callback(self.__conditions)
@@ -42,7 +43,7 @@ class Relation(object):
       for key, value in kwargs.items():
         if key == "ASC" or key == "DESC":
          order_str = ("{} {}".format(value, key),)
-    
+
     if order_str or kwargs:
       if "order" in self.__conditions:
         self.__conditions["order"] += ", " + order_str[0]
