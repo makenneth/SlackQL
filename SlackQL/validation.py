@@ -11,55 +11,53 @@ class Validation:
   def __init__(self):
     self.__validations = {}
 
+  def get_validations(self):
+    return self.__validations
+
   def add_validations(self, *args, **kwargs):
     if not args:
-      raise ValidationError("A field is required", "No argument is passed in add_validations function.")
+      raise ValidationError("At least one field is required", "No argument is passed in add_validations function.")
     if not kwargs:
-      raise ValidationError("A condition is required", "No argument is passed in add_validations function.")
+      raise ValidationError("At least one condition is required", "No argument is passed in add_validations function.")
     if "presence" in kwargs:
       if not isinstance(kwargs["presence"], bool):
-        raise ValueError("Wrong argument passed in", "Inclusion takes a boolean")
+        raise TypeError("Type mismatch", "Presence takes a boolean")
       for field in args:
         self.__add_validations(field, "presence", kwargs["presence"])
 
     if "uniqueness" in kwargs:
       if not isinstance(kwargs["uniqueness"], bool):
-        raise ValueError("Wrong argument passed in", "Inclusion takes a boolean")
+        raise TypeError("Type mismatch", "Uniqueness takes a boolean")
       for field in args:
         self.__add_validations(field, "uniqueness", kwargs["uniqueness"])
 
     if "inclusion" in kwargs:
       if not isinstance(kwargs["inclusion"], list):
-        raise ValueError("Wrong argument passed in", "Inclusion takes a list")
+        raise TypeError("Type mismatch", "Inclusion takes a list")
 
       for field in args:
         self.__add_validations(field, "inclusion", kwargs["inclusion"])
 
     if "length" in kwargs:
       if not isinstance(kwargs["length"], dict):
-        raise ValueError("Wrong argument", "Length has to be a dict with max and min")
+        raise TypeError("Type mismatch", "Length has to be a dict with max and min")
 
       for field in args:
         self.__add_validations(field, "length", kwargs["length"])
     # if "allow_none" in kwargs:
     #   if not isinstance(kwargs["allow_none"], bool):
-    #     raise ValueError("Wrong argument", "Length has to be a dict with max and min")
+    #     raise TypeError("Wrong argument", "Length has to be a dict with max and min")
 
     #   for field in args:
     #     self.__add_validations(field, "allow_none", kwargs["allow_none"])
     if "range" in kwargs:
       if not isinstance(kwargs["range"], dict):
-        raise ValueError("Wrong argument", "Range has to be a dict with max and min")
-      
+        raise TypeError("Type mistch", "Range has to be a dict with max and min")
+
       for field in args:
-        self.__add_validations(field, "range", kwargs["range"]) 
+        self.__add_validations(field, "range", kwargs["range"])
 
   def __add_validations(self, field, validation, value):
-    try:
-      getattr(self, field)
-    except AttributeError:
-      raise ValidationError("Validation error", "Has no field {}".format(field))
-      
     if field not in self.__validations:
       self.__validations[field] = {}
     self.__validations[field][validation] = value
@@ -68,19 +66,25 @@ class Validation:
     pass
 
   def presence(self, field, criteria):
-    validation = getattr(self, field)
-    if not validation:
-      logger.error("Validation Error: {} must be present".format(field))
-    return validation
+    try:
+      validation = getattr(self, field)
+      if not validation:
+        logger.error("Validation Error: {} must be present".format(field))
+      return validation
+    except AttributeError:
+      return False
 
   def uniqueness(self, field, criteria):
-    query_str = """
-      SELECT * FROM {}
-      WHERE {} = '{}' 
-    """.format(
-      self.table_name(), 
-      field, 
-      getattr(self, field))
+    try:
+      query_str = """
+        SELECT * FROM {}
+        WHERE {} = '{}'
+      """.format(
+        self.table_name(),
+        field,
+        getattr(self, field))
+    except AttributeError:
+      return False
     validation = not self.search_one(query_str)
     if not validation:
       logger.error("Validation Error: {} must be unique".format(field))
@@ -94,14 +98,14 @@ class Validation:
 
   def length(self, field, criteria):
     val = getattr(self, field)
-    if isinstance(val, str):
+    if not isinstance(val, str):
       raise ValidationError("Type mismatch", "Length validation can only apply on strings")
 
     b1, b2 = True, True
     if "max" in criteria:
-      b1 = val.length <= criteria["max"]
+      b1 = len(val) <= criteria["max"]
     if "min" in criteria:
-      b2 = val.length >= criteria["min"]
+      b2 = len(val) >= criteria["min"]
 
     validation = b1 and b2
     if not validation:
@@ -110,8 +114,8 @@ class Validation:
 
   def range(self, field, criteria):
     val = getattr(self, field)
-    if isinstance(val, int):
-      raise ValidationError("Type mismatch", "Length validation can only apply on strings")
+    if not isinstance(val, int):
+      raise ValidationError("Type mismatch", "Range validation can only apply on numbers")
 
     b1, b2 = True, True
     if "max" in criteria:
