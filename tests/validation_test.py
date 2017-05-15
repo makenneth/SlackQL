@@ -124,7 +124,6 @@ class TestValidationsMethod(unittest.TestCase):
   def test_range_validation(self):
     setattr(self.validations, "count", 6)
     self.validations.add_validations("count", range={"min": 4, "max": 12})
-    print(self.validations.get_validations())
     self.assertTrue(self.validations.validate())
     setattr(self.validations, "count", 2)
     self.assertFalse(self.validations.validate())
