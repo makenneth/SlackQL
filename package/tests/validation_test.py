@@ -1,12 +1,11 @@
-import unittest, os, sys
+import unittest
 from unittest.mock import MagicMock
-sys.path.append(os.path.abspath(".."))
-import SlackQL
+from . import Validation, ValidationError
 
 
 class TestValidationsMethod(unittest.TestCase):
   def setUp(self):
-    self.validations = SlackQL.Validation()
+    self.validations = Validation()
 
   def tearDown(self):
     pass
@@ -15,13 +14,13 @@ class TestValidationsMethod(unittest.TestCase):
     """
       adding validations without args should raise an error
     """
-    self.assertRaises(SlackQL.ValidationError, self.validations.add_validations)
+    self.assertRaises(ValidationError, self.validations.add_validations)
 
   def test_add_validations_without_kwags(self):
     """
       adding validations without kwags should raise an error
     """
-    with self.assertRaises(SlackQL.ValidationError) as context:
+    with self.assertRaises(ValidationError) as context:
       self.validations.add_validations("title", "body")
 
     self.assertTrue('At least one condition is required', str(context.exception.expression))

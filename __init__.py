@@ -1,5 +1,2 @@
-from .SlackQL.collection import Collection
-from .SlackQL.relation import Relation
-from .SlackQL.searchable import Searchable
-from .SlackQL.association import Association
-from .SlackQL.validation import Validation, ValidationError
+from .package.lib.collection import Collection as Model
+from .package.lib import configure

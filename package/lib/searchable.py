@@ -27,17 +27,33 @@ class Searchable:
 
     return Relation(self.search_all).select(select_str)
 
-  def where(self, **kwargs):
+  def where(self, *args, **kwargs):
     where_str = ""
-    if isinstance(kwargs, str):
-      where_str = kwargs
-    else:
-      for i, (key, val) in enumerate(kwargs.items()):
-        if not i == 0:
-          where_str += " and "
-        where_str += "{} = '{}'".format(key, val)
+    if args != ():
+      where_str = " and ".join(args)
+
+    for i, (key, val) in enumerate(kwargs.items()):
+      if not i == 0:
+        where_str += " and "
+      # account for numbers and date
+      where_str += "{} = '{}'".format(key, val)
 
     return Relation(self.search_all).where(where_str)
+
+  def not_between(self, *args):
+    pass
+
+  def between(self, *args, **kwargs):
+    # account for numbers
+    between_clause = ""
+    if args != ():
+      where_str = " and ".join(args)
+
+    for i, (key, val) in enumerate(kwargs.items()):
+      if not i == 0:
+        where_str += " and "
+      where_str += "{} = '{}'".format(key, val)
+
 
   def limit(self, number):
     if isinstance(number, int):

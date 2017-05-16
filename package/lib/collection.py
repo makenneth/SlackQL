@@ -67,7 +67,6 @@ class Collection(Searchable, Validation):
     cursor.execute(sql_str)
     db.connection.commit()
     logger.info("Transaction Commited: {0:.2f}ms".format((time() - start) * 1000))
-    db.connection.close()
 
     return True
 
@@ -125,17 +124,50 @@ class Collection(Searchable, Validation):
 
     return result
 
-  def build_query(self, query):
-    conditions = ""
+  def build_conds(self, query):
+    query_str = ""
     if "where" in query:
-      conditions += " WHERE {}".format(query["where"])
+      query_str += " WHERE {}".format(query["where"])
 
+    return query_str
+
+  def build_sort(self, query):
+    query_str = ""
     if "order" in query:
-      conditions += " ORDER BY {}".format(query["order"])
+      query_str += " ORDER BY {}".format(query["order"])
     if "limit" in query:
-      conditions += " LIMIT {}".format(query["limit"])
-    query_str = """SELECT {} FROM {}{};""".format(query["select"] if "select" in query else "*",
-        self.table_name(), conditions)
+      query_str += " LIMIT {}".format(query["limit"])
+    if "offset" in query:
+      query_str += " OFFSET {}".format(query["offset"])
+
+  def build_assoc(self, associations):
+    assocs = ""
+
+    for join_type, tables in associations.items:
+      for table in tables:
+        assocs += """ {join_type} {join_table_name}
+        AS {join_table_name} ON {p_k}={f_k}""".format(
+          join_type=join_type,
+          join_alias=join_alias,
+          p_k=self._associations[table]["primary_key"],
+          f_k=self._associations[table]["foreign_key"]
+        )
+    return assocs
+
+  def build_query(self, query, associations):
+    conditions = self.build_conds(query)
+    sort = self.build_sort(query)
+    assocs = self.build_assoc(associations)
+    alias = self.table_name() if len(associations) > 0 else ""
+    alias_clause = " AS {}".format(self.table_name()[0]) if alias != "" else ""
+    query_str = """SELECT {} FROM {}{}{}{};""".format(
+      query["select"] if "select" in query else "*",
+      self.table_name(),
+      alias,
+      conditions,
+      assocs,
+      sort
+    )
     logger.info(query_str)
     return query_str
 

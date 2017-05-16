@@ -2,19 +2,20 @@ class Relation(object):
   def __init__(self, callback):
     self.callback = callback
     self.__conditions = {}
+    self.__used_associations = {}
 
   def __setitem__(self, *args):
-    return self.callback(self.__conditions)
+    return self.callback(self.__conditions, self.__used_associations)
 
   def __getitem__(self, index):
-    results = self.callback(self.__conditions)
+    results = self.callback(self.__conditions, self.__used_associations)
     return results[index]
 
   def __delitem__(self, *args):
-    return self.callback(self.__conditions)
+    return self.callback(self.__conditions, self.__used_associations)
 
   def __getattr__(self, val):
-    return self.callback(self.__conditions)
+    return self.callback(self.__conditions, self.__used_associations)
 
   def all(self):
     return self
@@ -51,5 +52,20 @@ class Relation(object):
 
     return self
 
-  def include(self):
-    pass
+  def __add_join(self, join_type, tables):
+    if join_type in self.__used_associations:
+      self.__used_associations["join_type"].append(tables)
+    else:
+      self.__used_associations["join_type"] = tables
+
+  def join(self, tables):
+    self.__add_join("INNER JOIN", tables)
+    return self
+
+  def left_join(self, tables):
+    self.__add_join("LEFT OUTER JOIN", tables)
+    return self
+
+  def inner_join(self, tables):
+    self.__add_join("INNER JOIN", tables)
+    return self

@@ -1,5 +1,5 @@
 # SlackQL
-Python ORM (ActiveRecord) - largely inspired by ActiveRecord in Ruby on Rails. Just like Ruby on Rails, this ActiveRecord utilizes lazy evaluations, which allows method to be chainable.
+Python ORM (ActiveRecord) - largely inspired by ActiveRecord in Ruby on Rails. Just like in Ruby on Rails, this ActiveRecord utilizes lazy evaluations, which allows method to be chainable.
 
 ## Basic Usage
 ### Configuration
@@ -42,6 +42,26 @@ class User(Model):
 ```python
 >>> p = Post.find_by(title="Hello world")
 <class 'Post' {id=3, title="Hello world" ...}>
+```
+
+## Appending and Editing
+- Create New
+```python
+from models import Post
+>>> p = Post(title="Bye World")
+>>> p.body = "test body"
+>>> p.save()
+<class 'Post' {id=4, title="Bye World" ...}>
+```
+
+- Edit
+```python
+from models import Post
+>>> p = Post.find(4)
+<class 'Post' {id=4, title="Bye World" ...}>
+>>> p.title = "Hi World"
+>>> p.save()
+<class 'Post' {id=4, title="Hi World" ...}>
 ```
 
 ### Lazy Evaluation
