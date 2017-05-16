@@ -2,20 +2,20 @@ import inflection
 from .relation import Relation
 from .searchable import Searchable
 from .validation import Validation
-from . import logger
+from . import logger, db
 from time import time
 
 class Collection(Searchable, Validation):
   def columns(self):
+    cursor = db.connection.cursor()
     if not self.__columns:
-      self.__cursor.execute("SELECT * FROM {} LIMIT 0".format(self.table_name))
-      self.__columns = [tuple[0] for tuple in self.__cursor.description]
+      cursor.execute("SELECT * FROM {} LIMIT 0".format(self.table_name()))
+      self.__columns = [tuple[0] for tuple in cursor.description]
     return self.__columns
 
   def __init__(self, **kwargs):
     super(Collection, self).__init__()
     self.set_validations()
-    self.__cursor = self.__connection.cursor()
     for column in self.columns():
       setattr(self, column, kwargs[column] if column in kwargs else None)
 
@@ -25,18 +25,17 @@ class Collection(Searchable, Validation):
         self.__table = args[0]
       else:
         self.__table = inflection.underscore(inflection.pluralize(self.__class__.__name__))
-
     return self.__table
 
   def insert(self, **kwargs):
     values, columns = "", ""
-
+    cursor = db.connection.cursor()
     for i, key in enumerate(kwargs):
       if not i == 0:
         columns += ", "
         values += ", "
 
-      columns += "'" + key + "'"
+      columns += key
       values += "'" + kwargs[key] + "'"
     logger.info("Transaction begin:")
     start = time()
@@ -46,14 +45,14 @@ class Collection(Searchable, Validation):
         values=values
         )
     logger.info(sql_str)
-    self.__cursor.execute(sql_str)
-    self.__connection.commit()
+    cursor.execute(sql_str)
+    db.connection.commit()
     logger.info("Transaction Commited: {0:.2f}ms".format((time() - start) * 1000))
-    self.__connection.close()
-    self.id = self.__cursor.lastrowid
+    self.id = cursor.lastrowid
     return True
 
   def update(self, **kwargs):
+    cursor = db.connection.cursor()
     values = ""
 
     for i, key in enumerate(kwargs):
@@ -65,10 +64,10 @@ class Collection(Searchable, Validation):
     sql_str = """\nUPDATE {table_name} SET {queries}""".format(self.table_name(), values)
     logger.info("Transaction begin:")
     logger.info(sql_str)
-    self.__cursor.execute(sql_str)
-    self.__connection.commit()
+    cursor.execute(sql_str)
+    db.connection.commit()
     logger.info("Transaction Commited: {0:.2f}ms".format((time() - start) * 1000))
-    self.__connection.close()
+    db.connection.close()
 
     return True
 
@@ -96,14 +95,15 @@ class Collection(Searchable, Validation):
 
 
   def search_all(self, query):
-    self.__cursor.execute(self.build_query(query))
+    db.connection.cursor().execute(self.build_query(query))
     return self.get_result()
 
   def search_one(self, query):
-    self.__cursor.execute(query)
+    cursor = db.connection.cursor()
+    cursor.execute(query)
     attr = {}
-    columns = [tuple[0] for tuple in self.__cursor.description]
-    result = self.__cursor.fetchone()
+    columns = [tuple[0] for tuple in cursor.description]
+    result = cursor.fetchone()
     if not result:
       logger.warning("No such entry found")
       return None
@@ -114,9 +114,10 @@ class Collection(Searchable, Validation):
     return type(self.__class__.__name__, (), attr)
 
   def get_result(self):
+    cursor = db.connection.cursor()
     result, attr = [], {}
-    columns = [tuple[0] for tuple in self.__cursor.description]
-    for item in self.__cursor.fetchall():
+    columns = [tuple[0] for tuple in cursor.description]
+    for item in cursor.fetchall():
       for i in range(len(item)):
         attr[columns[i]] = item[i]
 
