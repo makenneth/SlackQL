@@ -2,7 +2,6 @@ class Relation(object):
   def __init__(self, callback):
     self.callback = callback
     self.__conditions = {}
-    self.__associations = {}
 
   def __setitem__(self, *args):
     return self.callback(self.__conditions)
@@ -51,3 +50,6 @@ class Relation(object):
         self.__conditions["order"] = order_str[0]
 
     return self
+
+  def include(self):
+    pass

@@ -1,4 +1,3 @@
-import sqlite3
 import inflection
 from .relation import Relation
 from .searchable import Searchable
@@ -16,7 +15,6 @@ class Collection(Searchable, Validation):
   def __init__(self, **kwargs):
     super(Collection, self).__init__()
     self.set_validations()
-    self.__connection = sqlite3.connect("twitter.db")
     self.__cursor = self.__connection.cursor()
     for column in self.columns():
       setattr(self, column, kwargs[column] if column in kwargs else None)

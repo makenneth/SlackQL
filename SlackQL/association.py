@@ -8,13 +8,6 @@ class Association:
     return "Unrecognized association: {}".format(name)
 
   def has_many(self, assoc_table, **kwargs):
-    # By user table
-    # assoc_table  "UserPosts"
-    # class_name "UserPost"
-    # table_name user_posts
-    # f_k inflection.underscore(self.__class__.__name__)  + "_id"
-    # f_k user_id
-    # p_k id (for user table)
     class_name = inflection.singularize(assoc_table)
     table_name = inflection.underscore(assoc_table)
     p_key = "id" if "primary_key" not in kwargs else kwargs["primary_key"]
@@ -28,12 +21,6 @@ class Association:
     }
 
   def belongs_to(self, assoc_table, **kwargs):
-    # By user_posts table
-    # assoc_table "GroupUser"
-    # class_name "GroupUser"
-    # table_name "group_users"
-    # f_k group_user_id
-    # p_k id
     table_name = inflection.underscore(inflection.pluralize(assoc_table))
     p_key = "id" if "primary_key" not in kwargs else kwargs["primary_key"]
     f_key = "{}_id".format(inflection.underscore(assoc_table)) if "foreign_key" not in kwargs else kwargs["foreign_key"]
@@ -48,3 +35,15 @@ class Association:
   def has_many_through(self, assoc_table, **kwargs):
     pass
 
+  def include(self, class_name, **kwargs):
+    # class_name UserPost
+    # table_name user_posts
+    table_name = inflection.pluralize(inflection.underscore(class_name))
+    if table_name not in self._associations:
+      logger.error("Assoication {} not defined".format(class_name))
+      return
+
+    return Relation(self.)
+
+  def join(self):
+    pass
