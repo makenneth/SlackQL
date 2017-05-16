@@ -1,13 +1,15 @@
 import sqlite3
+import inflection
 from .relation import Relation
 from .searchable import Searchable
 from .validation import Validation
 from . import logger
 from time import time
+
 class Collection(Searchable, Validation):
   def columns(self):
     if not self.__columns:
-      self.__cursor.execute("SELECT * FROM {} LIMIT 0".format(self.__class__.__name__))
+      self.__cursor.execute("SELECT * FROM {} LIMIT 0".format(self.table_name))
       self.__columns = [tuple[0] for tuple in self.__cursor.description]
     return self.__columns
 
@@ -20,11 +22,11 @@ class Collection(Searchable, Validation):
       setattr(self, column, kwargs[column] if column in kwargs else None)
 
   def table_name(self, *args):
-    if not self.__table:   
+    if not self.__table:
       if args:
         self.__table = args[0]
       else:
-        self.__table = self.__class__.__name__
+        self.__table = inflection.underscore(inflection.pluralize(self.__class__.__name__))
 
     return self.__table
 
@@ -35,14 +37,14 @@ class Collection(Searchable, Validation):
       if not i == 0:
         columns += ", "
         values += ", "
-      
+
       columns += "'" + key + "'"
       values += "'" + kwargs[key] + "'"
     logger.info("Transaction begin:")
     start = time()
     sql_str = """\nINSERT INTO {table_name} ({columns}) VALUES ({values});""".format(
         table_name=self.table_name(),
-        columns=columns, 
+        columns=columns,
         values=values
         )
     logger.info(sql_str)
@@ -60,7 +62,7 @@ class Collection(Searchable, Validation):
       if not i == 0:
         values += ", "
 
-      values += "'{column}={value}'".format(column=key, value=kwargs[key]) 
+      values += "'{column}={value}'".format(column=key, value=kwargs[key])
 
     sql_str = """\nUPDATE {table_name} SET {queries}""".format(self.table_name(), values)
     logger.info("Transaction begin:")
@@ -109,17 +111,17 @@ class Collection(Searchable, Validation):
       return None
     else:
       for i in range(len(result)):
-        attr[columns[i]] = result[i] 
+        attr[columns[i]] = result[i]
 
     return type(self.__class__.__name__, (), attr)
 
   def get_result(self):
-    result, attr = [], {} 
+    result, attr = [], {}
     columns = [tuple[0] for tuple in self.__cursor.description]
     for item in self.__cursor.fetchall():
       for i in range(len(item)):
-        attr[columns[i]] = item[i] 
-      
+        attr[columns[i]] = item[i]
+
       result.append(type(self.__class__.__name__, (), attr))
 
     return result
