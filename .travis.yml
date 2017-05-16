@@ -4,4 +4,4 @@ python:
 install:
   - pip3 install .
 
-script: python3 -m unittest discvoer --pattern=*_test.py
+script: python3 -m unittest discover --pattern=*_test.py
