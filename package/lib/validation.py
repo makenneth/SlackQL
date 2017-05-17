@@ -1,16 +1,8 @@
 from . import logger, repository
 
-class Error(Exception):
-  pass
-
-class ValidationError(Error):
-  def __init__(self, expression, message):
-    self.expression = expression
-    self.message = message
-
 class Validation:
   def add_validations(self, *args, **kwargs):
-    repository.Validation().add_validations(self, *args, **kwargs)
+    repository.Validation().add_validations(self.__class__.__name__, *args, **kwargs)
 
   def presence(self, field, criteria):
     try:
@@ -46,7 +38,7 @@ class Validation:
   def length(self, field, criteria):
     val = getattr(self, field)
     if not isinstance(val, str):
-      raise ValidationError("Type mismatch", "Length validation can only apply on strings")
+      raise repository.ValidationError("Type mismatch", "Length validation can only apply on strings")
 
     b1, b2 = True, True
     if "max" in criteria:
@@ -62,7 +54,7 @@ class Validation:
   def range(self, field, criteria):
     val = getattr(self, field)
     if not isinstance(val, int):
-      raise ValidationError("Type mismatch", "Range validation can only apply on numbers")
+      raise repository.ValidationError("Type mismatch", "Range validation can only apply on numbers")
 
     b1, b2 = True, True
     if "max" in criteria:
@@ -73,7 +65,7 @@ class Validation:
     return b1 and b2
 
   def validate(self):
-    validations = repository.Validation().get_validations()
+    validations = repository.Validation().get_validations(self)
     if not validations:
       return True
 

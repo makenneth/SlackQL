@@ -1,6 +1,6 @@
 import inflection
 
-class Association:
+class Association(object):
   _instance = None
   def __new__(cls, *args, **kwargs):
     if not cls._instance:
@@ -15,7 +15,6 @@ class Association:
     return "Unrecognized association: {}".format(name)
 
   def get_associations(self, callee_class):
-    print(self.__associations)
     if callee_class in self.__associations:
       return self.__associations[callee_class]
 
