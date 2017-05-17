@@ -1,11 +1,13 @@
 import inflection
+import numbers
 from .relation import Relation
 from .searchable import Searchable
 from .validation import Validation
-from . import logger, db
+from .association import Association
+from . import logger, db, repository
 from time import time
 
-class Collection(Searchable, Validation):
+class Collection(Searchable, Validation, Association):
   def columns(self):
     cursor = db.connection.cursor()
     if not self.__columns:
@@ -16,6 +18,7 @@ class Collection(Searchable, Validation):
   def __init__(self, **kwargs):
     super(Collection, self).__init__()
     self.set_validations()
+    self.set_associations()
     for column in self.columns():
       setattr(self, column, kwargs[column] if column in kwargs else None)
 
@@ -36,7 +39,11 @@ class Collection(Searchable, Validation):
         values += ", "
 
       columns += key
-      values += "'" + kwargs[key] + "'"
+      if isinstance(kwargs[key], numbers.Number):
+        values += str(kwargs[key])
+      else:
+        values += "'" + kwargs[key] + "'"
+
     logger.info("Transaction begin:")
     start = time()
     sql_str = """\nINSERT INTO {table_name} ({columns}) VALUES ({values});""".format(
@@ -84,7 +91,7 @@ class Collection(Searchable, Validation):
       return self
 
     for key, val in self:
-      if val:
+      if val and key != "_associations":
         attrs[key] = val
 
     if "id" in attrs:
@@ -176,8 +183,12 @@ class Collection(Searchable, Validation):
       if "__" not in key:
        yield key, val
 
-  def __getattr__(self, val):
-    if callable(val):
+  def __getattr__(self, val, *args, **kwargs):
+    if val == "belongs_to" or val == "has_many":
+      def wrapper(*args, **kwargs):
+        getattr(repository.Association(), val)(*args, **kwargs)
+      return wrapper
+    elif callable(val):
       print("Invalid method {}".format(val.__name__))
     else:
       return None
