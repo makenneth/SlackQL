@@ -20,16 +20,19 @@ class Association:
   def class_to_table(self, class_name):
     return inflection.pluralize(inflection.underscore(class_name))
 
-  def has_many(self, assoc_table, **kwargs):
-    if not self.__assocations:
-      self.__assocations = {}
+  def has_many(self, callee, assoc_table, **kwargs):
+    callee_class = callee.__class__.__name__
+    if callee_class in self.__assocations:
+      return
+
+    self.__assocations[callee_class] = {}
     table_name = inflection.underscore(assoc_table)
-    primary_class = self.__class__.__name__
+    primary_class = callee_class
     foreign_class = inflection.singularize(assoc_table) if "foreign_class" not in kwargs else kwargs["foreign_class"]
     p_key = "id" if "primary_key" not in kwargs else kwargs["primary_key"]
-    f_key = inflection.underscore(self.__class__.__name__) + "_id" if "foreign_key" not in kwargs else kwargs["foreign_key"]
+    f_key = inflection.underscore(callee_class) + "_id" if "foreign_key" not in kwargs else kwargs["foreign_key"]
 
-    self.__assocations[table_name] = {
+    self.__assocations[callee_class][table_name] = {
       "type": "has_many",
       "primary_class": primary_class,
       "foreign_class": foreign_class,
@@ -37,12 +40,15 @@ class Association:
       "foreign_key": f_key
     }
 
-  def belongs_to(self, assoc_table, **kwargs):
-    if not self.__assocations:
-      self.__assocations = {}
+  def belongs_to(self, callee, assoc_table, **kwargs):
+    callee_class = callee.__class__.__name__
+    if callee_class in self.__assocations:
+      return
+
+    self.__assocations[callee_class] = {}
     table_name = inflection.underscore(inflection.pluralize(assoc_table))
     primary_class = assoc_table
-    foreign_class = self.__class__.__name__ if "foreign_class" not in kwargs else kwargs["foreign_class"]
+    foreign_class = callee_class if "foreign_class" not in kwargs else kwargs["foreign_class"]
     p_key = "id" if "primary_key" not in kwargs else kwargs["primary_key"]
     f_key = "{}_id".format(inflection.underscore(assoc_table)) if "foreign_key" not in kwargs else kwargs["foreign_key"]
 

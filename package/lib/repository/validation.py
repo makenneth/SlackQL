@@ -1,5 +1,7 @@
 class Validation:
   _instance = None
+  _initiated = 0
+
   def __new__(cls, *args, **kwargs):
     if not cls._instance:
       cls._instance = super(Validation, cls).__new__(cls, *args, **kwargs)
@@ -7,12 +9,17 @@ class Validation:
     return cls._instance
 
   def __init__(self):
+    self.__class__._initiated += 1
     self.__validations = {}
 
   def get_validations(self):
     return self.__validations
 
   def add_validations(self, *args, **kwargs):
+    if self.__class__._initiated > 1:
+      return
+
+    print("adding validations")
     if not args:
       raise ValidationError("At least one field is required", "No argument is passed in add_validations function.")
     if not kwargs:

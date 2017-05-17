@@ -10,7 +10,7 @@ class ValidationError(Error):
 
 class Validation:
   def add_validations(self, *args, **kwargs):
-    repository.Validation().add_validations(*args, **kwargs)
+    repository.Validation().add_validations(self, *args, **kwargs)
 
   def presence(self, field, criteria):
     try:

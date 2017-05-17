@@ -186,7 +186,7 @@ class Collection(Searchable, Validation, Association):
   def __getattr__(self, val, *args, **kwargs):
     if val == "belongs_to" or val == "has_many":
       def wrapper(*args, **kwargs):
-        getattr(repository.Association(), val)(*args, **kwargs)
+        getattr(repository.Association(), val)(self, *args, **kwargs)
       return wrapper
     elif callable(val):
       print("Invalid method {}".format(val.__name__))
