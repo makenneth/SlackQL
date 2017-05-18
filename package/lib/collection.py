@@ -108,8 +108,8 @@ class Collection(Searchable, Validation, Association):
       return self.insert(**attrs)
 
 
-  def search_all(self, query):
-    db.connection.cursor().execute(self.build_query(query))
+  def search_all(self, query, associations):
+    db.connection.cursor().execute(self.build_query(query, associations))
     return self.get_result()
 
   def search_one(self, query):

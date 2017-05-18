@@ -1,14 +1,49 @@
 import unittest
-from . import Collection
+from unittest.mock import MagicMock, Mock
+from . import Collection, db
 
 class TestCollectionMethods(unittest.TestCase):
   def setUp(self):
     self.collection = Collection()
 
+  def tearDown(self):
+    db.connection = None
+
+  def test_search_one(self):
+    class User(Collection): pass
+
+    db.connection = Mock()
+    cursor = db.connection.cursor()
+    cursor.description = [("id","sdfj"), ("name", "sdfjk")]
+    cursor.fetchone = MagicMock(return_value=(1, "John"))
+
+    result = User().search_one("query placeholder")
+    self.assertTrue(result.id == 1)
+    self.assertTrue(result.name == "John")
+
+  def test_search_all(self):
+    db.connection = Mock()
+    self.collection.get_result = MagicMock(return_value=None)
+    self.collection.build_query = MagicMock(return_value=None)
+    self.collection.search_all({}, {})
+    db.connection.cursor.assert_called()
+    db.connection.cursor().execute.assert_called()
+    self.collection.get_result.assert_called()
+
+  def test_get_result(self):
+    class User(Collection): pass
+
+    db.connection = Mock()
+    cursor = db.connection.cursor()
+    cursor.description = [("id","sdfj"), ("name", "sdfjk")]
+    cursor.fetchall = MagicMock(return_value=[(1, "John"), (2, "Peter")])
+
+    result = User().get_result()
+    self.assertTrue(len(result) == 2)
+    self.assertTrue([isinstance(entry, User) for entry in result])
+
   def test_build_assoc(self):
     class GroupUser(Collection): pass
-    class Comments(Collection): pass
-    user_post = Comments()
     user = GroupUser()
     case1 = {
       "INNER JOIN": {
@@ -49,8 +84,8 @@ ON group_users.id=comments.group_user_id"""
     expected_result1 = """
 INNER JOIN user_posts AS user_posts
 ON group_users.id=user_posts.group_user_id"""
-    self.assertTrue(GroupUser().build_assoc(case1) == expected_result1)
-    self.assertTrue(GroupUser().build_assoc(case2) == expected_result2)
+    self.assertTrue(user.build_assoc(case1) == expected_result1)
+    self.assertTrue(user.build_assoc(case2) == expected_result2)
 
   def test_build_sort(self):
     expected_result1 = " ORDER BY id"
