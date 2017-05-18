@@ -9,18 +9,26 @@ from time import time
 
 class Collection(Searchable, Validation, Association):
   def columns(self):
-    cursor = db.connection.cursor()
-    if not self.__columns:
-      cursor.execute("SELECT * FROM {} LIMIT 0".format(self.table_name()))
-      self.__columns = [tuple[0] for tuple in cursor.description]
-    return self.__columns
+    if db.connection:
+      cursor = db.connection.cursor()
+      if not self.__columns:
+        cursor.execute("SELECT * FROM {} LIMIT 0".format(self.table_name()))
+        self.__columns = [tuple[0] for tuple in cursor.description]
+      return self.__columns
+
+    return []
 
   def __init__(self, **kwargs):
     super(Collection, self).__init__()
-    self.set_validations()
-    self.set_associations()
+    if self.set_validations:
+      self.set_validations()
+    if self.set_associations:
+      self.set_associations()
     for column in self.columns():
       setattr(self, column, kwargs[column] if column in kwargs else None)
+
+  def class_to_table(self, class_name):
+    return inflection.pluralize(inflection.underscore(class_name))
 
   def table_name(self, *args):
     if not self.__table:
@@ -133,6 +141,7 @@ class Collection(Searchable, Validation, Association):
 
   def build_conds(self, query):
     query_str = ""
+    # need to account for foreign table
     if "where" in query:
       query_str += " WHERE {}".format(query["where"])
 
@@ -147,18 +156,24 @@ class Collection(Searchable, Validation, Association):
     if "offset" in query:
       query_str += " OFFSET {}".format(query["offset"])
 
+    return query_str
+
   def build_assoc(self, associations):
     assocs = ""
 
-    for join_type, tables in associations.items:
-      for table in tables:
-        assocs += """ {join_type} {join_table_name}
-        AS {join_table_name} ON {p_k}={f_k}""".format(
+    for join_type, tables in associations.items():
+      for table_name, rel in tables.items():
+        assocs += """
+{join_type} {join_table_name} AS {join_table_name}
+ON {p_c}.{p_k}={f_c}.{f_k}""".format(
           join_type=join_type,
-          join_alias=join_alias,
-          p_k=self._associations[table]["primary_key"],
-          f_k=self._associations[table]["foreign_key"]
+          join_table_name=table_name,
+          p_c=self.class_to_table(rel["primary_class"]),
+          f_c=self.class_to_table(rel["foreign_class"]),
+          p_k=rel["primary_key"],
+          f_k=rel["foreign_key"]
         )
+
     return assocs
 
   def build_query(self, query, associations):
@@ -167,6 +182,7 @@ class Collection(Searchable, Validation, Association):
     assocs = self.build_assoc(associations)
     alias = self.table_name() if len(associations) > 0 else ""
     alias_clause = " AS {}".format(self.table_name()[0]) if alias != "" else ""
+    # need to account for foreign table
     query_str = """SELECT {} FROM {}{}{}{};""".format(
       query["select"] if "select" in query else "*",
       self.table_name(),
