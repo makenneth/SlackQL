@@ -2,4 +2,4 @@ from ..lib.repository import Association as AssociationRepo, Validation as Valid
 from ..lib.association import Association
 from ..lib.validation import Validation
 from ..lib.collection import Collection
-from ..lib import db
+from ..lib import db, DBConn

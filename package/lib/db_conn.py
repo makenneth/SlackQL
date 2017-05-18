@@ -12,12 +12,13 @@ class DBConn:
     self.connection = None
 
   def configure(self, **kwargs):
-    engine = "sqlite3"
+    if "db_name" not in kwargs:
+      raise ValueError("db_name must be present")
 
     db_name = kwargs["db_name"]
     if "database_engine" in kwargs:
       if kwargs["database_engine"] not in ["mysql", "psql", "sqlite3"]:
-        raise Exception
+        raise ValueError("database engine not supported. Databases supported are: mysql, psql, and sqlite3 (default)")
 
     engine = kwargs["database_engine"]
 
