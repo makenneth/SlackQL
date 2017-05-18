@@ -47,7 +47,6 @@ class TestValidationRepositoryMethod(unittest.TestCase):
     self.assertTrue("title" in added_validations)
     self.assertTrue("presence" in added_validations["title"])
 
-    # has to be boolean
     with self.assertRaises(TypeError) as context:
       self.validations.add_validations("User", "title", presence="True")
 
@@ -63,6 +62,7 @@ class TestValidationRepositoryMethod(unittest.TestCase):
   def test_add_inclusion_validation(self):
     self.validations.add_validations("User", "number", inclusion=["one", "two", "three"])
     added_validations = self.validations.get_validations("User")
+
     self.assertTrue("number" in added_validations)
     self.assertTrue("inclusion" in added_validations["number"])
 

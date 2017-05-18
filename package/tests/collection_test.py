@@ -1,12 +1,14 @@
 import unittest
 from unittest.mock import MagicMock, Mock
-from . import Collection, db
+from . import Collection, db, ValidationRepo
 
 class TestCollectionMethods(unittest.TestCase):
   def setUp(self):
     self.collection = Collection()
 
   def tearDown(self):
+    ValidationRepo._instance = None
+    ValidationRepo._initiated = 0
     db.connection = None
 
   def test_search_one(self):
