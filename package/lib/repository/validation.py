@@ -76,6 +76,6 @@ class Validation(object):
     if callee_class not in self.__validations:
       self.__validations[callee_class] = {}
 
-    if field not in self.__validations:
+    if field not in self.__validations[callee_class]:
       self.__validations[callee_class][field] = {}
     self.__validations[callee_class][field][validation] = value

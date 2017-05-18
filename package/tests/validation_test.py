@@ -1,134 +1,62 @@
 import unittest
 from unittest.mock import MagicMock
-from . import ValidationRepo as Validation, ValidationError
+from . import Validation, ValidationRepo
 
-class TestValidationsMethod(unittest.TestCase):
+class TestValidationMethods(unittest.TestCase):
   def setUp(self):
     self.validations = Validation()
 
   def tearDown(self):
-    Validation._instance = None
-    Validation._initiated = 0
+    ValidationRepo._instance = None
+    ValidationRepo._initiated = 0
 
-  def test_add_validations_without_args(self):
-    """
-      adding validations without args should raise an error
-    """
-    with self.assertRaises(ValidationError) as context:
-      self.validations.add_validations("User")
+  def test_presence_validation(self):
+    setattr(self.validations, "title", "test title")
+    self.validations.add_validations("title", presence=True)
+    self.assertTrue(self.validations.validate())
+    self.validations.add_validations("body", presence=True)
+    self.assertFalse(self.validations.validate())
 
-    self.assertTrue('At least one field is required', str(context.exception.expression))
+  def test_uniqueness_validation(self):
+    setattr(self.validations, "username", "testuser1")
+    self.validations.add_validations("username", uniqueness=True)
+    self.validations.table_name = MagicMock(return_value="test")
+    self.validations.search_one = MagicMock(return_value=False)
+    self.assertTrue(self.validations.validate())
+    setattr(self.validations, "username", "testuser2")
+    self.validations.search_one = MagicMock(return_value=True)
+    self.assertFalse(self.validations.validate())
 
-  def test_add_validations_without_kwags(self):
-    """
-      adding validations without kwags should raise an error
-    """
-    with self.assertRaises(ValidationError) as context:
-      self.validations.add_validations("User", "title", "body")
+  def test_inclusion_validation(self):
+    setattr(self.validations, "number", "one")
+    self.validations.add_validations("number", inclusion=["one", "two"])
+    self.assertTrue(self.validations.validate())
+    setattr(self.validations, "number", "three")
+    self.assertFalse(self.validations.validate())
 
-    self.assertTrue('At least one condition is required', str(context.exception.expression))
+  def test_str_length_validation(self):
+    setattr(self.validations, "password", "password")
+    self.validations.add_validations("password", length={"min": 5, "max": 8})
+    self.assertTrue(self.validations.validate())
+    setattr(self.validations, "password", "pass")
+    self.assertFalse(self.validations.validate())
+    setattr(self.validations, "password", "passwords")
+    self.assertFalse(self.validations.validate())
 
-  def test_correct_add_validations(self):
-    """
-      adding validations with proper arguments should not raise any errors
-    """
-    class User: pass
-    u = User()
-    setattr(u, "title", "test title")
-    raised = False
-    try:
-      self.validations.add_validations(u, "title", presence=True)
-    except:
-      raised = True
-    self.assertFalse(raised, "exception raised")
+  def test_list_length_validation(self):
+    setattr(self.validations, "tags", ["tag1", "tag2", "tag3"])
+    self.validations.add_validations("tags", length={"min": 3, "max": 4})
+    self.assertTrue(self.validations.validate())
+    setattr(self.validations, "tags", ["tag1", "tag2"])
+    self.assertFalse(self.validations.validate())
+    setattr(self.validations, "tags", ["tag1", "tag2", "tag3", "tag4", "tag5"])
+    self.assertFalse(self.validations.validate())
 
-  def test_add_presence_validation(self):
-    self.validations.add_validations("User", "title", presence=True)
-    added_validations = self.validations.get_validations("User")
-    self.assertTrue("title" in added_validations)
-    self.assertTrue("presence" in added_validations["title"])
-
-    # has to be boolean
-    with self.assertRaises(TypeError) as context:
-      self.validations.add_validations("User", "title", presence="True")
-
-  def test_add_uniqueness_validation(self):
-    self.validations.add_validations("User", "title", uniqueness=True)
-    added_validations = self.validations.get_validations("User")
-    self.assertTrue("title" in added_validations)
-    self.assertTrue("uniqueness" in added_validations["title"])
-
-    with self.assertRaises(TypeError) as context:
-      self.validations.add_validations("User", "title", uniqueness="True")
-
-  def test_add_inclusion_validation(self):
-    self.validations.add_validations("User", "number", inclusion=["one", "two", "three"])
-    added_validations = self.validations.get_validations("User")
-    self.assertTrue("number" in added_validations)
-    self.assertTrue("inclusion" in added_validations["number"])
-
-    with self.assertRaises(TypeError) as context:
-      self.validations.add_validations("User", "number", inclusion="abc")
-
-  def test_add_length_validation(self):
-    self.validations.add_validations("User", "password", length={ max: 8, min: 6 })
-    added_validations = self.validations.get_validations("User")
-    self.assertTrue("password" in added_validations)
-    self.assertTrue("length" in added_validations["password"])
-
-    with self.assertRaises(TypeError) as context:
-      self.validations.add_validations("User", "password", length=5)
-
-  def test_add_range_validation(self):
-    self.validations.add_validations("Votes", "count", range={ max: 20, min: 5 })
-    added_validations = self.validations.get_validations("Votes")
-    self.assertTrue("count" in added_validations)
-    self.assertTrue("range" in added_validations["count"])
-
-    with self.assertRaises(TypeError) as context:
-      self.validations.add_validations("Votes", "password", range=5)
-
-  # def test_presence_validation(self):
-  #   setattr(self.validations, "title", "test title")
-  #   self.validations.add_validations("title", presence=True)
-  #   self.assertTrue(self.validations.validate())
-  #   self.validations.add_validations("body", presence=True)
-  #   self.assertFalse(self.validations.validate())
-
-  # def test_uniqueness_validation(self):
-  #   setattr(self.validations, "username", "testuser1")
-  #   self.validations.add_validations("username", uniqueness=True)
-  #   self.validations.table_name = MagicMock(return_value="test")
-  #   self.validations.search_one = MagicMock(return_value=False)
-  #   self.assertTrue(self.validations.validate())
-  #   setattr(self.validations, "username", "testuser2")
-  #   self.validations.search_one = MagicMock(return_value=True)
-  #   self.assertFalse(self.validations.validate())
-
-  # def test_inclusion_validation(self):
-  #   setattr(self.validations, "number", "one")
-  #   self.validations.add_validations("number", inclusion=["one", "two"])
-  #   self.assertTrue(self.validations.validate())
-  #   setattr(self.validations, "number", "three")
-  #   self.assertFalse(self.validations.validate())
-
-  # def test_length_validation(self):
-  #   setattr(self.validations, "password", "password")
-  #   self.validations.add_validations("password", length={"min": 5, "max": 8})
-  #   self.assertTrue(self.validations.validate())
-  #   setattr(self.validations, "password", "pass")
-  #   self.assertFalse(self.validations.validate())
-  #   setattr(self.validations, "password", "passwords")
-  #   self.assertFalse(self.validations.validate())
-
-  # def test_range_validation(self):
-  #   setattr(self.validations, "count", 6)
-  #   self.validations.add_validations("count", range={"min": 4, "max": 12})
-  #   self.assertTrue(self.validations.validate())
-  #   setattr(self.validations, "count", 2)
-  #   self.assertFalse(self.validations.validate())
-  #   setattr(self.validations, "count", 16)
-  #   self.assertFalse(self.validations.validate())
-
-if __name__ == "__main__":
-    unittest.main()
+  def test_range_validation(self):
+    setattr(self.validations, "count", 6)
+    self.validations.add_validations("count", range={"min": 4, "max": 12})
+    self.assertTrue(self.validations.validate())
+    setattr(self.validations, "count", 2)
+    self.assertFalse(self.validations.validate())
+    setattr(self.validations, "count", 16)
+    self.assertFalse(self.validations.validate())

@@ -1,8 +1,11 @@
 from . import logger, repository
 
 class Validation:
+  def __init__(self):
+    self.__validations = repository.Validation()
+
   def add_validations(self, *args, **kwargs):
-    repository.Validation().add_validations(self.__class__.__name__, *args, **kwargs)
+    self.__validations.add_validations(self.__class__.__name__, *args, **kwargs)
 
   def presence(self, field, criteria):
     try:
@@ -37,8 +40,8 @@ class Validation:
 
   def length(self, field, criteria):
     val = getattr(self, field)
-    if not isinstance(val, str):
-      raise repository.ValidationError("Type mismatch", "Length validation can only apply on strings")
+    if not isinstance(val, str) and not isinstance(val, list):
+      raise repository.ValidationError("Type mismatch", "Length validation can only apply on strings or lists")
 
     b1, b2 = True, True
     if "max" in criteria:
@@ -48,7 +51,7 @@ class Validation:
 
     validation = b1 and b2
     if not validation:
-      logger.error("Validation Error: {} must have a length of...")
+      logger.error("Validation Error: {} must have a length between {} and {}".format(field, criteria["min"], criteria["max"]))
     return validation
 
   def range(self, field, criteria):
@@ -65,7 +68,7 @@ class Validation:
     return b1 and b2
 
   def validate(self):
-    validations = repository.Validation().get_validations(self)
+    validations = self.__validations.get_validations(self.__class__.__name__)
     if not validations:
       return True
 
