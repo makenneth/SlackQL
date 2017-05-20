@@ -15,7 +15,7 @@ class Searchable:
         helpers.format_clause_value(val)
       ))
 
-    return Relation(self.apply_query).where(conditions).find_one()
+    return Relation(self.apply_query).where(*conditions).find_one()
 
   def all(self):
     return Relation(self.apply_query).all()

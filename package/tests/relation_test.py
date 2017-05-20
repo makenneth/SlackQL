@@ -7,9 +7,9 @@ class TestRelation(unittest.TestCase):
     self.rel = Relation(MagicMock())
 
   def test_find(self):
-    return_value = self.rel.find()
-    self.assertTrue(self.rel._Relation__collection != "all")
-    self.assertTrue(isinstance(return_value, Relation))
+    return_value = self.rel.find_one()
+    self.assertTrue(self.rel._Relation__collection == "one")
+    self.assertFalse(isinstance(return_value, Relation))
 
   def test_all(self):
     return_value = self.rel.all()

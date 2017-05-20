@@ -8,5 +8,5 @@ console.setFormatter(formatter)
 logger.addHandler(console)
 logger.setLevel(logging.INFO)
 
-db = DBConn()
-configure = db.configure
+db = DBConn
+configure = DBConn.configure
