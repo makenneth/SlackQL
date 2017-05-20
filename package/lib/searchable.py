@@ -4,18 +4,10 @@ from . import logger
 
 class Searchable:
   def find(self, fid):
-    return Relation(self.apply_query).where("id = {}".format(fid)).find_one()
+    return Relation(self.apply_query).find(fid)
 
-  def find_by(self, **kwargs):
-    query = "SELECT * FROM {} WHERE {} LIMIT 1"
-    conditions = []
-    for key, val in kwargs.items():
-      conditions.append("{} = {}".format(
-        key,
-        helpers.format_clause_value(val)
-      ))
-
-    return Relation(self.apply_query).where(*conditions).find_one()
+  def find_by(self, *args, **kwargs):
+    return Relation(self.apply_query).find_by(*args, **kwargs)
 
   def all(self):
     return Relation(self.apply_query).all()

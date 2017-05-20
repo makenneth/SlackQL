@@ -28,8 +28,11 @@ class Relation(object):
     if not self.results:
       self.results = self.callback(self.__collection, self.__conditions, self.__used_associations)
 
-  # def find(self, pid):
-  #   return self.find_one("WHERE id = {}".format(pid))
+  def find(self, fid):
+    return self.where(id=fid).find_one()
+
+  def find_by(self, *args, **kwargs):
+    return self.where(*args, **kwargs).find_one()
 
   def find_one(self):
     self.__collection = "one"
