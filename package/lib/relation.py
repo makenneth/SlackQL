@@ -28,16 +28,28 @@ class Relation(object):
     if not self.results:
       self.results = self.callback(self.__collection, self.__conditions, self.__used_associations)
 
-  def find(self):
-    self.__collection = "find"
-    return self
+  def find_one(self):
+    self.__collection = "one"
+    return self.callback(self.__collection, self.__conditions, self.__used_associations)
 
   def all(self):
     self.__collection = "all"
     return self
 
-  def where(self, *args):
+  def where(self, *args, **kwargs):
+    if len(args) == 0 and len(kwargs) == 0:
+      logger.Info("Where requires at least one arguments. Call will be ignored.")
+      return self
+
     where_clause = " AND ".join(args)
+    for i, (key, val) in enumerate(kwargs.items()):
+      if not where_clause == "":
+        where_clause += " AND "
+      where_clause += "{} = {}".format(
+        key,
+        helpers.format_clause_value(val)
+      )
+
     if "where" in self.__conditions:
       self.__conditions["where"] += " AND " + where_clause
     else:
@@ -45,11 +57,15 @@ class Relation(object):
 
     return self
 
-  def within(self, *args):
+  def within(self, *args, **kwargs):
     in_str = ""
     if len(args) > 1:
       within_values = (", ").join([helpers.format_clause_value(val) for val in args[1]])
-      in_str = "{} IN ({})".format(args[0], within_values)
+      in_str = "{} {}IN ({})".format(
+        args[0],
+        "" if not kwargs or not kwargs["not"] else "{} ".format("NOT"),
+        within_values
+      )
     else:
       in_str = args[0]
 
@@ -60,15 +76,16 @@ class Relation(object):
 
     return self
 
-  def between(self, *args):
+  def between(self, *args, **kwargs):
     if len(args) != 1 and len(args) != 3:
       logger.info("Between takes 1 or 3 arguemtns")
       return self
 
     between_clause = ""
     if len(args) == 3:
-      between_clause = "{} BETWEEN {} AND {}".format(
+      between_clause = "{} {}BETWEEN {} AND {}".format(
         args[0],
+        "" if not kwargs or not kwargs["not"] else "{} ".format("NOT"),
         helpers.format_clause_value(args[1]),
         helpers.format_clause_value(args[2])
       )
@@ -82,17 +99,24 @@ class Relation(object):
     return self
 
   def limit(self, limit):
+    if type(limit) != int:
+      logger.info("limit only takes integer as an argument")
+      return self
+
     self.__conditions["limit"] = limit
     return self
 
   def select(self, *args):
+    if len(args) == 0:
+      logger.info("select requires at least one argument; call will be ignored")
+      return self
     if "select" in self.__conditions:
       self.__conditions["select"] += ", " + (", ").join(args)
     else:
       self.__conditions["select"] = (", ").join(args)
     return self
 
-  def order(self, *order_str, **kwargs):
+  def order(self, *args, **kwargs):
     order_clause = ""
     if kwargs:
       order_clauses = []
@@ -101,11 +125,11 @@ class Relation(object):
 
       order_clause = (", ").join(order_clauses)
 
-    if order_str:
+    if args:
       if len(order_clause) > 0:
-        order_clause += ", " + order_str
+        order_clause += ", " + args
       else:
-        order_clause = (", ").join(order_str)
+        order_clause = (", ").join(args)
 
     if len(order_clause) > 0:
       if "order" in self.__conditions:
