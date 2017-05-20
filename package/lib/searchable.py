@@ -17,7 +17,7 @@ class Searchable:
     return self.search_one(query)
 
   def all(self):
-    return Relation(self.search_all).all()
+    return Relation(self.apply_query).all()
 
   def select(self, *args):
     if len(args) == 0:
@@ -25,7 +25,7 @@ class Searchable:
     else:
       select_str = ", ".join(args)
 
-    return Relation(self.search_all).select(select_str)
+    return Relation(self.apply_query).select(select_str)
 
   def where(self, *args, **kwargs):
     where_str = ""
@@ -38,26 +38,33 @@ class Searchable:
       # account for numbers and date
       where_str += "{} = '{}'".format(key, val)
 
-    return Relation(self.search_all).where(where_str)
+    return Relation(self.apply_query).where(where_str)
 
   def not_between(self, *args):
     pass
 
-  def between(self, *args, **kwargs):
-    # account for numbers
-    between_clause = ""
-    if args != ():
-      where_str = " and ".join(args)
+  def within(self, *args):
+    if len(args) == 2:
+      if type(args[1]) == list and type(args[0]) == str:
+        within_str = " {} IN ({})".format(
+          args[0],
+          (", ").join([str(i) for i in args[1]])
+        )
+        return Relation(self.apply_query).within(within_str)
+    elif len(args) == 1 and type(args[0]) == str:
+      return Relation(self.apply_query).within(args)
 
-    for i, (key, val) in enumerate(kwargs.items()):
-      if not i == 0:
-        where_str += " and "
-      where_str += "{} = '{}'".format(key, val)
+    return Relation(self.apply_query)
 
+  def between(self, *args):
+    if len(args) == 1:
+      return Relation(self.apply_query).between(args)
+    elif len(args) == 2:
+      return Relation(self.apply_query).between(" and ".join(args))
 
   def limit(self, number):
     if isinstance(number, int):
-      return Relation(self.search_all).limit(number)
+      return Relation(self.apply_query).limit(number)
     else:
       raise ValueError("Argument passed into limit must be an int")
 
@@ -67,6 +74,4 @@ class Searchable:
       if key == "ASC" or key == "DESC":
        order_str = "{} {}".format(value, key)
 
-    return Relation(self.search_all).order(order_str)
-
-
+    return Relation(self.apply_query).order(order_str)
