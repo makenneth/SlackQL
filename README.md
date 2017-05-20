@@ -1,4 +1,6 @@
 # SlackQL
+[![Build Status](https://travis-ci.org/makenneth/SlackQL.svg?branch=master)](https://travis-ci.org/makenneth/SlackQL)[![Coverage Status](https://coveralls.io/repos/github/makenneth/SlackQL/badge.svg)](https://coveralls.io/github/makenneth/SlackQL)
+
 Python ORM (ActiveRecord) - largely inspired by ActiveRecord in Ruby on Rails. Just like in Ruby on Rails, this ActiveRecord utilizes lazy evaluations, which allows method to be chainable.
 
 ## Basic Usage
