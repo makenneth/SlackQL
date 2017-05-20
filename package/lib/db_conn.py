@@ -1,30 +1,26 @@
 import importlib
 
 class DBConn:
-  _instance = None
-  def __new__(cls, *args, **kwargs):
-    if not cls._instance:
-      cls._instance = super(DBConn, cls).__new__(cls, *args, **kwargs)
+  connection = None
 
-    return cls._instance
+  @classmethod
+  def configure(cls, **kwargs):
+    if not cls.connection:
+      if "db_name" not in kwargs:
+        raise ValueError("db_name must be present")
 
-  def __init__(self):
-    self.connection = None
+      db_name = kwargs["db_name"]
+      if "database_engine" in kwargs:
+        if kwargs["database_engine"] not in ["mysql", "psql", "sqlite3"]:
+          raise ValueError("database engine not supported. Databases supported are: mysql, psql, and sqlite3 (default)")
 
-  def configure(self, **kwargs):
-    if "db_name" not in kwargs:
-      raise ValueError("db_name must be present")
+      engine = kwargs["database_engine"]
 
-    db_name = kwargs["db_name"]
-    if "database_engine" in kwargs:
-      if kwargs["database_engine"] not in ["mysql", "psql", "sqlite3"]:
-        raise ValueError("database engine not supported. Databases supported are: mysql, psql, and sqlite3 (default)")
+      getattr(cls, "connect_{}".format(engine))(**kwargs)
+    return cls.connection
 
-    engine = kwargs["database_engine"]
-
-    getattr(self, "connect_{}".format(engine))(**kwargs)
-
-  def connect_mysql(self, **kwargs):
+  @classmethod
+  def connect_mysql(cls, **kwargs):
     mysql = importlib.import_module("MySQLdb")
     connect_config = {
       "port": kwargs["port"] if "port" in kwargs else 3306,
@@ -35,9 +31,10 @@ class DBConn:
     }
     if "connection_timeout" in kwargs:
       connect_config["connection_timeout"] = kwargs["connection_timeout"]
-    self.connection = mysql.connect(**connect_config)
+    cls.connection = mysql.connect(**connect_config)
 
-  def connect_psql(self, **kwargs):
+  @classmethod
+  def connect_psql(cls, **kwargs):
     psycopg2 = importlib.import_module("psycopg2")
     connect_config = {
       "port": kwargs["port"] if "port" in kwargs else 5432,
@@ -48,9 +45,10 @@ class DBConn:
     }
     if "connection_timeout" in kwargs:
       connect_config["connection_timeout"] = kwargs["connection_timeout"]
-    self.connection = psycopg2.connect(**connect_config)
+    cls.connection = psycopg2.connect(**connect_config)
 
-  def connect_sqlite3(self, **kwargs):
+  @classmethod
+  def connect_sqlite3(cls, **kwargs):
     sqlite3 = importlib.import_module("sqlite3")
-    self.connection = sqlite3.connect("{}.db".format(kwargs["db_name"]))
+    cls.connection = sqlite3.connect("{}.db".format(kwargs["db_name"]))
 
