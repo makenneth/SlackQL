@@ -1,17 +1,26 @@
 import inflection
-from . import repository
+from . import logger, repository
+from .relation import Relation
 
 class Association:
+  def includes(self, *args):
+    return Relation(self.apply_query).includes(args)
+
   def join(self, *args, **kwargs):
     table_names = []
-    for class_name in args:
-      table_name = self.class_to_table(class_name)
-      if table_name not in self._associations:
+    for join_class in args:
+      table_name = None
+      class_name = None
+      if type(join_class) == str:
+        class_name = join_class
+        table_name = self.class_to_table(join_class)
+      else:
+        class_name = join_class.__name__
+        table_name = self.class_to_table(class_name)
+      if table_name not in repository.Association.get_associations(self.__class__.__name__):
         logger.error("Assoication {} not defined".format(class_name))
         return
-
       table_names.append(table_name)
-
     return Relation(self.apply_join).join(table_names)
 
   def left_join(self):
@@ -39,4 +48,4 @@ class Association:
     return Relation(self.apply_join).inner_join(table_names)
 
   def apply_join(self, cond, associations):
-    pass
+    return self.search_all(cond, associations)
