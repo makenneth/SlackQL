@@ -3,10 +3,9 @@ from . import AssociationRepo as Association
 
 class TestAssociationRepoMethods(unittest.TestCase):
   def test_adding_default_has_many_association(self):
-    associations = Association()
-    associations.has_many("GroupUser", "UserPosts")
+    Association.has_many("GroupUser", "UserPosts")
 
-    added_associations = associations.get_associations("GroupUser")
+    added_associations = Association.get_associations("GroupUser")
     self.assertFalse(added_associations == {})
     self.assertTrue("user_posts" in added_associations)
 
@@ -18,10 +17,9 @@ class TestAssociationRepoMethods(unittest.TestCase):
     self.assertTrue(user_posts_association["primary_class"] == "GroupUser")
 
   def test_adding_default_belongs_to(self):
-    associations = Association()
-    associations.belongs_to("UserPost", "GroupUser")
+    Association.belongs_to("UserPost", "GroupUser")
 
-    added_associations = associations.get_associations("UserPost")
+    added_associations = Association.get_associations("UserPost")
     self.assertFalse(added_associations == {})
     self.assertTrue("group_users" in added_associations)
 

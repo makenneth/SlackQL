@@ -40,54 +40,54 @@ class TestCollectionMethods(unittest.TestCase):
     cursor.description = [("id","sdfj"), ("name", "sdfjk")]
     cursor.fetchall = MagicMock(return_value=[(1, "John"), (2, "Peter")])
 
-    result = User().get_result()
+    result = User().apply_query("all", (), ())
     self.assertTrue(len(result) == 2)
     self.assertTrue([isinstance(entry, User) for entry in result])
 
-  def test_build_assoc(self):
-    class GroupUser(Collection): pass
-    user = GroupUser()
-    case1 = {
-      "INNER JOIN": {
-        "user_posts": {
-          "type": "has_many",
-          "primary_key": "id",
-          "foreign_key": "group_user_id",
-          "primary_class": "GroupUser",
-          "foreign_class": "UserPost"
-        }
-      }
-    }
-    case2 = {
-      "INNER JOIN": {
-        "user_posts": {
-          "type": "has_many",
-          "primary_key": "id",
-          "foreign_key": "group_user_id",
-          "primary_class": "GroupUser",
-          "foreign_class": "UserPost"
-        },
-        "comments": {
-          "type": "has_many",
-          "primary_key": "id",
-          "foreign_key": "group_user_id",
-          "primary_class": "GroupUser",
-          "foreign_class": "Comments"
-        }
-      }
-    }
+#   def test_build_assoc(self):
+#     class GroupUser(Collection): pass
+#     user = GroupUser()
+#     case1 = {
+#       "INNER JOIN": {
+#         "user_posts": {
+#           "type": "has_many",
+#           "primary_key": "id",
+#           "foreign_key": "group_user_id",
+#           "primary_class": "GroupUser",
+#           "foreign_class": "UserPost"
+#         }
+#       }
+#     }
+#     case2 = {
+#       "INNER JOIN": {
+#         "user_posts": {
+#           "type": "has_many",
+#           "primary_key": "id",
+#           "foreign_key": "group_user_id",
+#           "primary_class": "GroupUser",
+#           "foreign_class": "UserPost"
+#         },
+#         "comments": {
+#           "type": "has_many",
+#           "primary_key": "id",
+#           "foreign_key": "group_user_id",
+#           "primary_class": "GroupUser",
+#           "foreign_class": "Comments"
+#         }
+#       }
+#     }
 
-    expected_result2 = """
-INNER JOIN user_posts AS user_posts
-ON group_users.id=user_posts.group_user_id
-INNER JOIN comments AS comments
-ON group_users.id=comments.group_user_id"""
+#     expected_result2 = """
+# INNER JOIN user_posts AS user_posts
+# ON group_users.id=user_posts.group_user_id
+# INNER JOIN comments AS comments
+# ON group_users.id=comments.group_user_id"""
 
-    expected_result1 = """
-INNER JOIN user_posts AS user_posts
-ON group_users.id=user_posts.group_user_id"""
-    self.assertTrue(user.build_assoc(case1) == expected_result1)
-    self.assertTrue(user.build_assoc(case2) == expected_result2)
+#     expected_result1 = """
+# INNER JOIN user_posts AS user_posts
+# ON group_users.id=user_posts.group_user_id"""
+#     self.assertTrue(user.build_assoc(case1) == expected_result1)
+#     self.assertTrue(user.build_assoc(case2) == expected_result2)
 
   def test_build_sort(self):
     expected_result1 = " ORDER BY id"
