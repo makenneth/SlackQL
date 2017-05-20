@@ -27,16 +27,16 @@ class Relation(object):
       self.results = self.callback(self.__collection, self.__conditions, self.__used_associations)
 
   def find(self):
-    self.__conditions = "find"
+    self.__collection = "find"
     return self
 
   def all(self):
-    self.__conditions = "all"
+    self.__collection = "all"
     return self
 
   def where(self, where_str):
     if "where" in self.__conditions:
-      self.__conditions["where"] += " and " + where_str
+      self.__conditions["where"] += " AND " + where_str
     else:
       self.__conditions["where"] = where_str
 
@@ -44,7 +44,7 @@ class Relation(object):
 
   def within(self, in_str):
     if "within" in self.__conditions:
-      self.__conditions["within"] += " and " + in_str
+      self.__conditions["within"] += " AND " + in_str
     else:
       self.__conditions["within"] = in_str
     return self
@@ -61,34 +61,44 @@ class Relation(object):
     return self
 
   def select(self, select_str):
-    self.__conditions["select"] = select_str
+    if "select" in self.__conditions:
+      self.__conditions["select"] += ", " + select_str
+    else:
+      self.__conditions["select"] = select_str
     return self
 
   def order(self, *order_str, **kwargs):
+    order_clause = ""
     if kwargs:
-      if "ASC" not in kwargs and "DESC" not in kwargs:
-        print("Warning: it may not produce a desired outcome if you do not provide ASC or DESC as a key")
+      order_clauses = []
       for key, value in kwargs.items():
-        if key == "ASC" or key == "DESC":
-         order_str = ("{} {}".format(value, key),)
+        order_clauses.append("{} {}".format(key, value))
 
-    if order_str or kwargs:
-      if "order" in self.__conditions:
-        self.__conditions["order"] += ", " + order_str[0]
+      order_clause = (", ").join(order_clauses)
+
+    if order_str:
+      if len(order_clause) > 0:
+        order_clause += ", " + order_str
       else:
-        self.__conditions["order"] = order_str[0]
+        order_clause = (", ").join(list(order_str))
+
+    if len(order_clause) > 0:
+      if "order" in self.__conditions:
+        self.__conditions["order"] += ", " + order_clause
+      else:
+        self.__conditions["order"] = order_clause
 
     return self
 
   def includes(self, tables):
-    self.__used_associations.append(*tables)
+    self.__used_associations.extend(tables)
     return self
 
-  def __add_join(self, join_type, tables):
-    if join_type in self.__used_associations:
-      self.__used_associations[join_type].append(tables)
-    else:
-      self.__used_associations[join_type] = tables
+  # def __add_join(self, join_type, tables):
+  #   if join_type in self.__used_associations:
+  #     self.__used_associations[join_type].append(tables)
+  #   else:
+  #     self.__used_associations[join_type] = tables
 
   # def join(self, tables):
   #   self.__add_join("INNER JOIN", tables)

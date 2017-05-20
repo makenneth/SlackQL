@@ -46,7 +46,7 @@ class Searchable:
   def within(self, *args):
     if len(args) == 2:
       if type(args[1]) == list and type(args[0]) == str:
-        within_str = " {} IN ({})".format(
+        within_str = "{} IN ({})".format(
           args[0],
           (", ").join([str(i) for i in args[1]])
         )

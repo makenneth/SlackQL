@@ -40,7 +40,7 @@ class TestCollectionMethods(unittest.TestCase):
     cursor.description = [("id","sdfj"), ("name", "sdfjk")]
     cursor.fetchall = MagicMock(return_value=[(1, "John"), (2, "Peter")])
 
-    result = User().apply_query("all", (), ())
+    result = User().get_result(cursor, ())
     self.assertTrue(len(result) == 2)
     self.assertTrue([isinstance(entry, User) for entry in result])
 
@@ -88,6 +88,25 @@ class TestCollectionMethods(unittest.TestCase):
 # ON group_users.id=user_posts.group_user_id"""
 #     self.assertTrue(user.build_assoc(case1) == expected_result1)
 #     self.assertTrue(user.build_assoc(case2) == expected_result2)
+
+  def test_build_conds(self):
+    query1 = {"where": "a > 2"}
+    query2 = {"within": "a in (2, 3, 4)"}
+    query3 = {"where": "a > 2", "within": "a in (2, 3, 4)"}
+    query4 = {"between": "a BETWEEN 1 and 5"}
+    query5 = {"where": "a > 5", "between": "a BETWEEN 1 and 5"}
+
+    expected_result1 = " WHERE a > 2"
+    expected_result2 = " WHERE a in (2, 3, 4)"
+    expected_result3 = " WHERE a > 2 AND a in (2, 3, 4)"
+    expected_result4 = " WHERE a BETWEEN 1 and 5"
+    expected_result5 = " WHERE a > 5 AND a BETWEEN 1 and 5"
+    self.assertTrue(self.collection.build_conds(query1) == expected_result1)
+    self.assertTrue(self.collection.build_conds(query2) == expected_result2)
+    self.assertTrue(self.collection.build_conds(query3) == expected_result3)
+    self.assertTrue(self.collection.build_conds(query4) == expected_result4)
+    self.assertTrue(self.collection.build_conds(query5) == expected_result5)
+
 
   def test_build_sort(self):
     expected_result1 = " ORDER BY id"

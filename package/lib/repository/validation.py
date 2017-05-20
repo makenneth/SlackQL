@@ -20,6 +20,7 @@ class Validation(object):
   def __init__(self):
     self.__class__._initiated += 1
 
+  @classmethod
   def get_validations(self, callee_class):
     if callee_class in Validation._validations:
       return Validation._validations[callee_class]

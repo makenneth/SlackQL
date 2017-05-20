@@ -210,7 +210,7 @@ class Collection(Searchable, Validation, Association):
     if "where" in query:
       query_str += " WHERE {}".format(query["where"])
     if "within" in query:
-      query_str += " WHERE" + query["within"] if query_str == "" else " AND " + query["within"]
+      query_str += " WHERE " + query["within"] if query_str == "" else " AND " + query["within"]
     if "between" in query:
       query_str += " WHERE {}".format(query["between"]) if query_str == "" else " AND " + query["between"]
     return query_str

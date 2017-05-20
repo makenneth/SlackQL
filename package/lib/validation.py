@@ -68,7 +68,7 @@ class Validation:
     return b1 and b2
 
   def validate(self):
-    validations = self.__validations.get_validations(self.__class__.__name__)
+    validations = repository.Validation.get_validations(self.__class__.__name__)
     if not validations:
       return True
 
