@@ -4,7 +4,7 @@ from .relation import Relation
 from .searchable import Searchable
 from .validation import Validation
 from .association import Association
-from . import logger, db, repository
+from . import logger, db, repository, helpers
 from time import time
 
 class Collection(Searchable, Validation, Association):
@@ -27,9 +27,6 @@ class Collection(Searchable, Validation, Association):
       self.set_associations()
     for column in self.columns():
       setattr(self, column, kwargs[column] if column in kwargs else None)
-
-  def class_to_table(self, class_name):
-    return inflection.pluralize(inflection.underscore(class_name))
 
   def table_name(self, *args):
     if not self.__table:
@@ -139,7 +136,7 @@ class Collection(Searchable, Validation, Association):
     referenced_keys = {}
     associations = repository.Association.get_associations(self.__class__.__name__)
     for table in assoc_tables:
-      assoc_class = self.class_to_table(table.__name__)
+      assoc_class = helpers.class_to_table(table.__name__)
       association = associations[assoc_class]
 
       if association["type"] == "belongs_to":
@@ -174,7 +171,7 @@ class Collection(Searchable, Validation, Association):
         reference_key, reference_keys = None, []
         other_key, reference_class_name = None, None
 
-        assoc_class = self.class_to_table(table.__name__)
+        assoc_class = helpers.class_to_table(table.__name__)
         association = associations[assoc_class]
         if association["type"] == "has_many":
           reference_class_name = association["foreign_class"]

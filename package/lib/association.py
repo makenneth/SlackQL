@@ -1,6 +1,7 @@
 import inflection
-from . import logger, repository
+from . import logger, repository, helpers
 from .relation import Relation
+
 
 class Association:
   def includes(self, *args):
@@ -13,10 +14,10 @@ class Association:
       class_name = None
       if type(join_class) == str:
         class_name = join_class
-        table_name = self.class_to_table(join_class)
+        table_name = helpers.class_to_table(join_class)
       else:
         class_name = join_class.__name__
-        table_name = self.class_to_table(class_name)
+        table_name = helpers.class_to_table(class_name)
       if table_name not in repository.Association.get_associations(self.__class__.__name__):
         logger.error("Assoication {} not defined".format(class_name))
         return
@@ -26,7 +27,7 @@ class Association:
   def left_join(self):
     table_names = []
     for class_name in args:
-      table_name = self.class_to_table(class_name)
+      table_name = helpers.class_to_table(class_name)
       if table_name not in self._associations:
         logger.error("Assoication {} not defined".format(class_name))
         return
@@ -38,7 +39,7 @@ class Association:
   def inner_join(self):
     table_names = []
     for class_name in args:
-      table_name = self.class_to_table(class_name)
+      table_name = helpers.class_to_table(class_name)
       if table_name not in self._associations:
         logger.error("Assoication {} not defined".format(class_name))
         return

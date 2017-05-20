@@ -26,11 +26,15 @@ class TestRelation(unittest.TestCase):
 
   def test_within(self):
     return_value = self.rel.within("a IN (1, 2, 3)")
-
     self.assertTrue(self.rel._Relation__conditions["within"] == "a IN (1, 2, 3)")
     return_value = self.rel.within("b IN (4, 5, 6)")
     self.assertTrue(self.rel._Relation__conditions["within"] == "a IN (1, 2, 3) AND b IN (4, 5, 6)")
     self.assertTrue(isinstance(return_value, Relation))
+    self.rel = Relation(MagicMock())
+    return_value = self.rel.within("a", ["1", "2", 3])
+    self.assertTrue(self.rel._Relation__conditions["within"] == "a IN ('1', '2', 3)")
+    return_value = self.rel.within("b IN (4, 5, 6)")
+    self.assertTrue(self.rel._Relation__conditions["within"] == "a IN ('1', '2', 3) AND b IN (4, 5, 6)")
 
   def test_between(self):
     return_value = self.rel.between("a BETWEEN 3 AND 5")
@@ -39,6 +43,12 @@ class TestRelation(unittest.TestCase):
     return_value = self.rel.between("b BETWEEN 5 AND 8")
     self.assertTrue(self.rel._Relation__conditions["between"] == "a BETWEEN 3 AND 5 AND b BETWEEN 5 AND 8")
     self.assertTrue(isinstance(return_value, Relation))
+
+    self.rel = Relation(MagicMock())
+    self.rel.between("a", 1, 5)
+    self.assertTrue(self.rel._Relation__conditions["between"] == "a BETWEEN 1 AND 5")
+    self.rel.between("b", "a", "c")
+    self.assertTrue(self.rel._Relation__conditions["between"] == "a BETWEEN 1 AND 5 AND b BETWEEN 'a' AND 'c'")
 
   def test_limit(self):
     return_value = self.rel.limit(5)
@@ -50,6 +60,11 @@ class TestRelation(unittest.TestCase):
     self.assertTrue(self.rel._Relation__conditions["select"] == "id, name")
     self.rel.select("nickname, age")
     self.assertTrue(self.rel._Relation__conditions["select"] == "id, name, nickname, age")
+    self.rel = Relation(MagicMock())
+    self.rel.select("id", "name")
+    self.assertTrue(self.rel._Relation__conditions["select"] == "id, name")
+    self.rel.select("nickname, age", "title")
+    self.assertTrue(self.rel._Relation__conditions["select"] == "id, name, nickname, age, title")
 
   def test_order(self):
     self.rel.order(name="DESC")
