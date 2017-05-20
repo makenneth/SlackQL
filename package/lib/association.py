@@ -1,11 +1,11 @@
 import inflection
 from . import logger, repository, helpers
-from .relation import Relation
+from .cache import Cache
 
 
 class Association:
   def includes(self, *args):
-    return Relation(self.apply_query).includes(args)
+    return Cache(self.apply_query).includes(args)
 
   # def join(self, *args, **kwargs):
   #   table_names = []
@@ -22,7 +22,7 @@ class Association:
   #       logger.error("Assoication {} not defined".format(class_name))
   #       return
   #     table_names.append(table_name)
-  #   return Relation(self.apply_join).join(table_names)
+  #   return Cache(self.apply_join).join(table_names)
 
   # def left_join(self):
   #   table_names = []
@@ -34,7 +34,7 @@ class Association:
 
   #     table_names.append(table_name)
 
-  #   return Relation(self.apply_join).left_join(table_names)
+  #   return Cache(self.apply_join).left_join(table_names)
 
   # def inner_join(self):
   #   table_names = []
@@ -46,7 +46,7 @@ class Association:
 
   #     table_names.append(table_name)
 
-  #   return Relation(self.apply_join).inner_join(table_names)
+  #   return Cache(self.apply_join).inner_join(table_names)
 
   # def apply_join(self, cond, associations):
   #   return self.search_all(cond, associations)

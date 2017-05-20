@@ -1,6 +1,6 @@
 import inflection
 import numbers
-from .relation import Relation
+# from .cache import Cache
 from .searchable import Searchable
 from .validation import Validation
 from .association import Association
@@ -9,15 +9,9 @@ from time import time
 
 class Collection(Searchable, Validation, Association):
   def columns(self):
-    if db.connection:
-      cursor = db.connection.cursor()
-      # cache this
-      if not self.__columns:
-        cursor.execute("SELECT * FROM {} LIMIT 0".format(self.table_name()))
-        self.__columns = [tuple[0] for tuple in cursor.description]
-      return self.__columns
-
-    return []
+    if not self.__columns:
+      self.__columns = repository.Columns.get_columns(self.table_name())
+    return self.__columns
 
   def __init__(self, **kwargs):
     super(Collection, self).__init__()

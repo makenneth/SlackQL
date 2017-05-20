@@ -1,6 +1,6 @@
 from . import helpers
 
-class Relation(object):
+class Cache(object):
   def __init__(self, callback):
     self.callback = callback
     self.__conditions = {}
