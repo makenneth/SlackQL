@@ -1,4 +1,5 @@
 from .relation import Relation
+from . import helpers
 from . import logger
 
 class Searchable:
@@ -10,7 +11,10 @@ class Searchable:
     query = "SELECT * FROM {} WHERE {} LIMIT 1"
     conditions = []
     for key, val in kwargs.items():
-      conditions.append("{} = '{}'".format(key, val))
+      conditions.append("{} = {}".format(
+        key,
+        helpers.format_clause_value(val)
+      ))
 
     query = query.format(self.table_name(), " and ".join(conditions))
 
@@ -36,7 +40,10 @@ class Searchable:
       if not i == 0:
         where_str += " and "
       # account for numbers and date
-      where_str += "{} = '{}'".format(key, val)
+      where_str += "{} = {}".format(
+        key,
+        helpers.format_clause_value(val)
+      )
 
     return Relation(self.apply_query).where(where_str)
 
@@ -48,7 +55,7 @@ class Searchable:
       if type(args[1]) == list and type(args[0]) == str:
         within_str = "{} IN ({})".format(
           args[0],
-          (", ").join([str(i) for i in args[1]])
+          (", ").join([helpers.format_clause_value(val) for val in args[1]])
         )
         return Relation(self.apply_query).within(within_str)
     elif len(args) == 1 and type(args[0]) == str:
@@ -60,6 +67,7 @@ class Searchable:
     if len(args) == 1:
       return Relation(self.apply_query).between(args)
     elif len(args) == 2:
+      between_values = [helpers.format_clause_value(val) for val in args]
       return Relation(self.apply_query).between("BETWEEN" + " and ".join(args))
 
   def limit(self, number):
