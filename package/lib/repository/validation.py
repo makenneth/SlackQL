@@ -9,6 +9,7 @@ class ValidationError(Error):
 class Validation(object):
   _instance = None
   _initiated = 0
+  _validations = {}
 
   def __new__(cls, *args, **kwargs):
     if not cls._instance:
@@ -18,11 +19,10 @@ class Validation(object):
 
   def __init__(self):
     self.__class__._initiated += 1
-    self.__validations = {}
 
   def get_validations(self, callee_class):
-    if callee_class in self.__validations:
-      return self.__validations[callee_class]
+    if callee_class in Validation._validations:
+      return Validation._validations[callee_class]
 
     return {}
 
@@ -59,12 +59,7 @@ class Validation(object):
 
       for field in args:
         self.__add_validations(callee_class, field, "length", kwargs["length"])
-    # if "allow_none" in kwargs:
-    #   if not isinstance(kwargs["allow_none"], bool):
-    #     raise TypeError("Wrong argument", "Length has to be a dict with max and min")
 
-    #   for field in args:
-    #     self.__add_validations(callee_class, field, "allow_none", kwargs["allow_none"])
     if "range" in kwargs:
       if not isinstance(kwargs["range"], dict):
         raise TypeError("Type mistch", "Range has to be a dict with max and min")
@@ -73,9 +68,9 @@ class Validation(object):
         self.__add_validations(callee_class, field, "range", kwargs["range"])
 
   def __add_validations(self, callee_class, field, validation, value):
-    if callee_class not in self.__validations:
-      self.__validations[callee_class] = {}
+    if callee_class not in Validation._validations:
+      Validation._validations[callee_class] = {}
 
-    if field not in self.__validations[callee_class]:
-      self.__validations[callee_class][field] = {}
-    self.__validations[callee_class][field][validation] = value
+    if field not in Validation._validations[callee_class]:
+      Validation._validations[callee_class][field] = {}
+    Validation._validations[callee_class][field][validation] = value

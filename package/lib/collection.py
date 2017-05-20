@@ -11,6 +11,7 @@ class Collection(Searchable, Validation, Association):
   def columns(self):
     if db.connection:
       cursor = db.connection.cursor()
+      # cache this
       if not self.__columns:
         cursor.execute("SELECT * FROM {} LIMIT 0".format(self.table_name()))
         self.__columns = [tuple[0] for tuple in cursor.description]
@@ -107,10 +108,17 @@ class Collection(Searchable, Validation, Association):
     else:
       return self.insert(**attrs)
 
+  def apply_query(self, collection, *args):
+    if collection == "all":
+      return self.search_all(*args)
+    else:
+      return self.search_one(*args)
 
   def search_all(self, query, associations):
-    db.connection.cursor().execute(self.build_query(query, associations))
-    return self.get_result()
+    query = self.build_query(query)
+    cursor = db.connection.cursor()
+    cursor.execute(query)
+    return self.get_result(cursor, associations)
 
   def search_one(self, query):
     cursor = db.connection.cursor()
@@ -127,24 +135,84 @@ class Collection(Searchable, Validation, Association):
 
     return type(self.__class__.__name__, (), attr)
 
-  def get_result(self):
-    cursor = db.connection.cursor()
+  def get_all_key_used(self, assoc_tables, associations):
+    referenced_keys = {}
+    associations = repository.Association.get_associations(self.__class__.__name__)
+    for table in assoc_tables:
+      assoc_class = self.class_to_table(table.__name__)
+      association = associations[assoc_class]
+
+      if association["type"] == "belongs_to":
+        referenced_keys[association["foreign_key"]] = True
+      elif association["type"] == "has_many":
+        referenced_keys[association["primary_key"]] = True
+
+    return referenced_keys
+
+  def get_result(self, cursor, assoc_tables):
+    associations = repository.Association.get_associations(self.__class__.__name__)
+    self_class_name = self.__class__.__name__
     result, attr = [], {}
+    result_key_reference = {}
+    all_key_referenced = self.get_all_key_used(assoc_tables, associations)
+
     columns = [tuple[0] for tuple in cursor.description]
     for item in cursor.fetchall():
       for i in range(len(item)):
         attr[columns[i]] = item[i]
 
-      result.append(type(self.__class__.__name__, (), attr))
+      new_entry = type(self_class_name, (), attr)
+      for key in all_key_referenced:
+        if not key in result_key_reference:
+          result_key_reference[key] = {}
+
+        result_key_reference[key][attr[key]] = new_entry
+      result.append(new_entry)
+
+    if len(assoc_tables) > 0:
+      for table in assoc_tables:
+        reference_key, reference_keys = None, []
+        other_key, reference_class_name = None, None
+
+        assoc_class = self.class_to_table(table.__name__)
+        association = associations[assoc_class]
+        if association["type"] == "has_many":
+          reference_class_name = association["foreign_class"]
+          reference_key = association["primary_key"]
+          other_key = association["foreign_key"]
+        elif association["type"] == "belongs_to":
+          reference_class_name = association["primary_class"]
+          reference_key = association["foreign_key"]
+          other_key = association["foreign_key"]
+        else:
+          raise ValueError("Association not supported")
+
+        reference_keys = [getattr(r, reference_key) for r in result]
+        reference_class = type(reference_class_name, (Collection,), {})
+        reference_results = reference_class().within(other_key, reference_keys)
+        associated_result_dict = {}
+
+        for item in reference_results:
+          key = getattr(item, other_key)
+          if not key in associated_result_dict:
+            associated_result_dict[key] = []
+          associated_result_dict[key].append(item)
+
+        attr_name = inflection.pluralize(inflection.underscore(reference_class_name))
+        for key, item in associated_result_dict.items():
+          referenced_object = result_key_reference[reference_key][key]
+          setattr(referenced_object, attr_name, item)
 
     return result
 
   def build_conds(self, query):
     query_str = ""
-    # need to account for foreign table
     if "where" in query:
       query_str += " WHERE {}".format(query["where"])
-
+    if "within" in query:
+      query_str += " WHERE" + query["within"] if query_str == "" else " AND " + query["within"]
+    if "between" in query:
+      query_str += " WHERE {}".format(query["between"]) if query_str == "" else " AND " + query["between"]
     return query_str
 
   def build_sort(self, query):
@@ -158,37 +226,49 @@ class Collection(Searchable, Validation, Association):
 
     return query_str
 
-  def build_assoc(self, associations):
-    assocs = ""
+  # def build_assoc(self, associations):
+  #   assocs = ""
 
-    for join_type, tables in associations.items():
-      for table_name, rel in tables.items():
-        assocs += """
-{join_type} {join_table_name} AS {join_table_name}
-ON {p_c}.{p_k}={f_c}.{f_k}""".format(
-          join_type=join_type,
-          join_table_name=table_name,
-          p_c=self.class_to_table(rel["primary_class"]),
-          f_c=self.class_to_table(rel["foreign_class"]),
-          p_k=rel["primary_key"],
-          f_k=rel["foreign_key"]
-        )
+  #   added_associations = repository.Association.get_associations(self.__class__.__name__)
+  #   if not added_associations:
+  #     return assocs
 
-    return assocs
+  #   for join_type, tables in associations.items():
+  #     # have to get associations here.. so the key for
+  #     # the association repo should be different
+  #     # should use something like table_name
+  #     # so it can be quickly referenced
 
-  def build_query(self, query, associations):
+  #     for table_name in tables:
+  #       if not table_name in added_associations:
+  #         logger.error("Relationship {} not defined".format(table_name))
+  #         continue
+  #       rel = added_associations[table_name]
+  #       assocs += """
+  #   {join_type} {join_table_name} AS {join_table_name}
+  #   ON {p_c}.{p_k}={f_c}.{f_k}""".format(
+  #         join_type=join_type,
+  #         join_table_name=table_name,
+  #         p_c=self.class_to_table(rel["primary_class"]),
+  #         f_c=self.class_to_table(rel["foreign_class"]),
+  #         p_k=rel["primary_key"],
+  #         f_k=rel["foreign_key"]
+  #       )
+
+  #   return assocs
+
+  def build_query(self, query):
     conditions = self.build_conds(query)
     sort = self.build_sort(query)
-    assocs = self.build_assoc(associations)
-    alias = self.table_name() if len(associations) > 0 else ""
-    alias_clause = " AS {}".format(self.table_name()[0]) if alias != "" else ""
+    # assocs = self.build_assoc(associations)
+    # alias = self.table_name() if len(associations) > 0 else ""
+    # alias_clause = " AS {}".format(self.table_name()) if alias != "" else ""
     # need to account for foreign table
-    query_str = """SELECT {} FROM {}{}{}{};""".format(
+    query_str = """
+    SELECT {} FROM {}{}{};""".format(
       query["select"] if "select" in query else "*",
       self.table_name(),
-      alias,
       conditions,
-      assocs,
       sort
     )
     logger.info(query_str)
@@ -202,7 +282,7 @@ ON {p_c}.{p_k}={f_c}.{f_k}""".format(
   def __getattr__(self, val, *args, **kwargs):
     if val == "belongs_to" or val == "has_many":
       def wrapper(*args, **kwargs):
-        getattr(repository.Association(), val)(self.__class__.__name__, *args, **kwargs)
+        getattr(repository.Association, val)(self.__class__.__name__, *args, **kwargs)
       return wrapper
     elif callable(val):
       print("Invalid method {}".format(val.__name__))

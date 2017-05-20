@@ -60,7 +60,7 @@ class Searchable:
     if len(args) == 1:
       return Relation(self.apply_query).between(args)
     elif len(args) == 2:
-      return Relation(self.apply_query).between(" and ".join(args))
+      return Relation(self.apply_query).between("BETWEEN" + " and ".join(args))
 
   def limit(self, number):
     if isinstance(number, int):
