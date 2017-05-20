@@ -117,8 +117,15 @@ class Collection(Searchable, Validation, Association):
     cursor.execute(query)
     return self.get_result(cursor, associations)
 
-  def search_one(self, query):
+  def search_one(self, query, associations):
     cursor = db.connection.cursor()
+    query = """
+    SELECT {select_clause} FROM {table_name}{where_clause} LIMIT 1;""".format(
+      select_clause=self.build_select(query),
+      table_name=self.table_name(),
+      where_clause=self.build_conds(query)
+    )
+    logger.info(query)
     cursor.execute(query)
     attr = {}
     columns = [tuple[0] for tuple in cursor.description]
@@ -223,6 +230,8 @@ class Collection(Searchable, Validation, Association):
 
     return query_str
 
+  def build_select(self, query):
+    return query["select"] if "select" in query else "*"
   # def build_assoc(self, associations):
   #   assocs = ""
 
@@ -255,18 +264,16 @@ class Collection(Searchable, Validation, Association):
   #   return assocs
 
   def build_query(self, query):
-    conditions = self.build_conds(query)
-    sort = self.build_sort(query)
     # assocs = self.build_assoc(associations)
     # alias = self.table_name() if len(associations) > 0 else ""
     # alias_clause = " AS {}".format(self.table_name()) if alias != "" else ""
     # need to account for foreign table
     query_str = """
     SELECT {} FROM {}{}{};""".format(
-      query["select"] if "select" in query else "*",
+      self.build_select(query),
       self.table_name(),
-      conditions,
-      sort
+      self.build_conds(query),
+      self.build_sort(query)
     )
     logger.info(query_str)
     return query_str
