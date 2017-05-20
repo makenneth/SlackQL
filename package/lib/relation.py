@@ -2,22 +2,36 @@ class Relation(object):
   def __init__(self, callback):
     self.callback = callback
     self.__conditions = {}
-    self.__used_associations = {}
+    self.__used_associations = []
+    self.__collection = "all"
+    self.results = []
 
   def __setitem__(self, *args):
-    return self.callback(self.__conditions, self.__used_associations)
+    self.get_result()
+    return self.callback(self.__collection, self.__conditions, self.__used_associations)
 
   def __getitem__(self, index):
-    results = self.callback(self.__conditions, self.__used_associations)
-    return results[index]
+    self.get_result()
+    return self.results[index]
 
   def __delitem__(self, *args):
-    return self.callback(self.__conditions, self.__used_associations)
+    self.get_result()
+    return self.results
 
   def __getattr__(self, val):
-    return self.callback(self.__conditions, self.__used_associations)
+    self.get_result()
+    return self.results
+
+  def get_result(self):
+    if not self.results:
+      self.results = self.callback(self.__collection, self.__conditions, self.__used_associations)
+
+  def find(self):
+    self.__conditions = "find"
+    return self
 
   def all(self):
+    self.__conditions = "all"
     return self
 
   def where(self, where_str):
@@ -26,6 +40,20 @@ class Relation(object):
     else:
       self.__conditions["where"] = where_str
 
+    return self
+
+  def within(self, in_str):
+    if "within" in self.__conditions:
+      self.__conditions["within"] += " and " + in_str
+    else:
+      self.__conditions["within"] = in_str
+    return self
+
+  def between(self, between):
+    if "between" in self.__conditions:
+      self.__conditions["between"] += " AND " + between
+    else:
+      self.__conditions["between"] = between
     return self
 
   def limit(self, limit):
@@ -52,20 +80,24 @@ class Relation(object):
 
     return self
 
+  def includes(self, tables):
+    self.__used_associations.append(*tables)
+    return self
+
   def __add_join(self, join_type, tables):
     if join_type in self.__used_associations:
-      self.__used_associations["join_type"].append(tables)
+      self.__used_associations[join_type].append(tables)
     else:
-      self.__used_associations["join_type"] = tables
+      self.__used_associations[join_type] = tables
 
-  def join(self, tables):
-    self.__add_join("INNER JOIN", tables)
-    return self
+  # def join(self, tables):
+  #   self.__add_join("INNER JOIN", tables)
+  #   return self
 
-  def left_join(self, tables):
-    self.__add_join("LEFT OUTER JOIN", tables)
-    return self
+  # def left_join(self, tables):
+  #   self.__add_join("LEFT OUTER JOIN", tables)
+  #   return self
 
-  def inner_join(self, tables):
-    self.__add_join("INNER JOIN", tables)
-    return self
+  # def inner_join(self, tables):
+  #   self.__add_join("INNER JOIN", tables)
+  #   return self
