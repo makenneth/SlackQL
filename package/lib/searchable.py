@@ -1,6 +1,5 @@
 from .slack_cache import Cache
 from . import helpers
-from . import logger
 
 class Searchable(object):
   def find(self, fid):

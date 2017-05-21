@@ -1,4 +1,4 @@
-from . import logger, repository
+from . import Logger, repository
 
 class Validation:
   def __init__(self):
@@ -11,7 +11,7 @@ class Validation:
     try:
       validation = getattr(self, field)
       if not validation:
-        logger.error("Validation Error: {} must be present".format(field))
+        Logger.error("Validation Error: {} must be present".format(field))
       return validation
     except AttributeError:
       return False
@@ -29,13 +29,13 @@ class Validation:
       return False
     validation = not self.search_one(query_str)
     if not validation:
-      logger.error("Validation Error: {} must be unique".format(field))
+      Logger.error("Validation Error: {} must be unique".format(field))
     return validation
 
   def inclusion(self, field, criteria):
     validation = getattr(self, field) in criteria
     if not validation:
-      logger.error("Validation Error: {} must be one of {}".format(field, criteria))
+      Logger.error("Validation Error: {} must be one of {}".format(field, criteria))
     return validation
 
   def length(self, field, criteria):
@@ -51,7 +51,7 @@ class Validation:
 
     validation = b1 and b2
     if not validation:
-      logger.error("Validation Error: {} must have a length between {} and {}".format(field, criteria["min"], criteria["max"]))
+      Logger.error("Validation Error: {} must have a length between {} and {}".format(field, criteria["min"], criteria["max"]))
     return validation
 
   def range(self, field, criteria):

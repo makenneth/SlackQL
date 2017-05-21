@@ -3,7 +3,7 @@ import numbers
 from .searchable import Searchable
 from .validation import Validation
 from .association import Association
-from . import logger, db, repository, helpers
+from . import Logger, db, repository, helpers
 from time import time
 
 class Collection(Searchable, Validation, Association):
@@ -27,7 +27,7 @@ class Collection(Searchable, Validation, Association):
       attr_val = getattr(self, col)
       # if attr_val:
       instance_data.append("{}={}".format(col, helpers.format_clause_value(attr_val)))
-    return "<class '{class_name}' {{{info}}}>".format(
+    return "\033[1m\033[35m<class '{class_name}' {{{info}}}>\033[0m".format(
       class_name=self.__class__.__name__,
       info=(", ").join(instance_data)
     )
@@ -65,17 +65,17 @@ class Collection(Searchable, Validation, Association):
       else:
         values += "'" + kwargs[key] + "'"
 
-    logger.info("Transaction begin:")
+    Logger.time("Transaction begin:")
     start = time()
     sql_str = """\nINSERT INTO {table_name} ({columns}) VALUES ({values});""".format(
         table_name=self.table_name(),
         columns=columns,
         values=values
         )
-    logger.info(sql_str)
+    Logger.query(sql_str)
     cursor.execute(sql_str)
     db.connection.commit()
-    logger.info("Transaction Commited: {0:.2f}ms".format((time() - start) * 1000))
+    Logger.time("Transaction Commited: {0:.2f}ms".format((time() - start) * 1000))
     self.id = cursor.lastrowid
     return True
 
@@ -90,11 +90,11 @@ class Collection(Searchable, Validation, Association):
       values += "'{column}={value}'".format(column=key, value=kwargs[key])
 
     sql_str = """\nUPDATE {table_name} SET {queries}""".format(self.table_name(), values)
-    logger.info("Transaction begin:")
-    logger.info(sql_str)
+    Logger.time("Transaction begin:")
+    Logger.query(sql_str)
     cursor.execute(sql_str)
     db.connection.commit()
-    logger.info("Transaction Commited: {0:.2f}ms".format((time() - start) * 1000))
+    Logger.time("Transaction Commited: {0:.2f}ms".format((time() - start) * 1000))
 
     return True
 
@@ -108,7 +108,7 @@ class Collection(Searchable, Validation, Association):
         setattr(self, key, val)
 
     if not self.validate():
-      logger.warning("ROLLBACK Transaction.")
+      Logger.warning("ROLLBACK Transaction.")
       return self
 
     for key, val in self:
@@ -134,20 +134,25 @@ class Collection(Searchable, Validation, Association):
 
   def search_one(self, query, associations):
     cursor = db.connection.cursor()
-    query = """
-    SELECT {select_clause} FROM {table_name}{where_clause} LIMIT 1;""".format(
+    query = """SELECT {select_clause} FROM {table_name}{where_clause} LIMIT 1;""".format(
       select_clause=self.build_select(query),
       table_name=self.table_name(),
       where_clause=self.build_conds(query)
     )
-    logger.info(query)
+    Logger.query(query)
+    start = time()
     cursor.execute(query)
+
+    Logger.time("{0} loads - {1:.2f}ms".format(
+      self.__class__.__name__,
+      (time() - start) * 1000
+    ))
     attr = {}
     columns = [tuple[0] for tuple in cursor.description]
     obj = type(self.__class__.__name__, (Collection,), {})()
     result = cursor.fetchone()
     if not result:
-      logger.warning("No such entry found")
+      Logger.warning("No such entry found")
       return None
     else:
       for i in range(len(result)):
@@ -265,7 +270,7 @@ class Collection(Searchable, Validation, Association):
 
   #     for table_name in tables:
   #       if not table_name in added_associations:
-  #         logger.error("Relationship {} not defined".format(table_name))
+  #         Logger.error("Relationship {} not defined".format(table_name))
   #         continue
   #       rel = added_associations[table_name]
   #       assocs += """
@@ -293,7 +298,7 @@ class Collection(Searchable, Validation, Association):
       self.build_conds(query),
       self.build_sort(query)
     )
-    logger.info(query_str)
+    Logger.info(query_str)
     return query_str
 
   def __iter__(self):
@@ -307,6 +312,6 @@ class Collection(Searchable, Validation, Association):
         getattr(repository.Association, val)(self.__class__.__name__, *args, **kwargs)
       return wrapper
     elif callable(val):
-      print("Invalid method {}".format(val.__name__))
+      Logger.error("Invalid method {}".format(val.__name__))
     else:
       return None
