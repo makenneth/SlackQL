@@ -141,8 +141,7 @@ class Collection(Searchable, Validation, Association):
   def search_one(self, query, associations):
     cursor = db.connection.cursor()
     query = """SELECT {select_clause}
-            FROM {table_name}
-            {where_clause}
+            FROM {table_name}{where_clause}
             LIMIT 1;""".format(
       select_clause=self.build_select(query),
       table_name=self.table_name(),
@@ -201,9 +200,9 @@ class Collection(Searchable, Validation, Association):
         if not key in result_key_reference:
           result_key_reference[key] = {}
 
-        result_key_reference[key][attr[key]] = new_entry
-      result.append(new_entry)
+        result_key_reference[key][getattr(new_entry, key)] = new_entry
 
+      result.append(new_entry)
     if len(assoc_tables) > 0:
       for table in assoc_tables:
         reference_key, reference_keys = None, []

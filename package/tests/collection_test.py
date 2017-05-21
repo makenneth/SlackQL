@@ -19,7 +19,7 @@ class TestCollectionMethods(unittest.TestCase):
     cursor.description = [("id","sdfj"), ("name", "sdfjk")]
     cursor.fetchone = MagicMock(return_value=(1, "John"))
 
-    result = User().search_one("query placeholder")
+    result = User().search_one("query placeholder", [])
     self.assertTrue(result.id == 1)
     self.assertTrue(result.name == "John")
 

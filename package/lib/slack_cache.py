@@ -1,6 +1,6 @@
 from . import helpers, Logger
 
-class Cache(object):
+class Cache:
   def __init__(self, callback):
     self.callback = callback
     self.__conditions = {}
@@ -160,7 +160,7 @@ class Cache(object):
 
     return self
 
-  def includes(self, tables):
+  def includes(self, *tables):
     self.__used_associations.extend(tables)
     return self
 

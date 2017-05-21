@@ -5,7 +5,7 @@ from .slack_cache import Cache
 
 class Association:
   def includes(self, *args):
-    return Cache(self.apply_query).includes(args)
+    return Cache(self.apply_query).includes(*args)
 
   # def join(self, *args, **kwargs):
   #   table_names = []
