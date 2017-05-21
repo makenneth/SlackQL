@@ -25,23 +25,22 @@ class Collection(Searchable, Validation, Association):
     instance_data = []
     for col in self.columns():
       attr_val = getattr(self, col)
-      # if attr_val:
       instance_data.append("{}={}".format(col, helpers.format_clause_value(attr_val)))
-    return "\033[1m\033[35m<class '{class_name}' {{{info}}}>\033[0m".format(
+
+    return Logger.representation("<class '{class_name}' {{{info}}}>".format(
       class_name=self.__class__.__name__,
       info=(", ").join(instance_data)
-    )
+    ))
 
   def __repr__(self):
     instance_data = []
     for col in self.columns():
       attr_val = getattr(self, col)
-      # if attr_val:
       instance_data.append("{}={}".format(col, helpers.format_clause_value(attr_val)))
-    return "<class '{class_name}' {{{info}}}>".format(
+    return Logger.representation("<class '{class_name}' {{{info}}}>".format(
       class_name=self.__class__.__name__,
       info=(", ").join(instance_data)
-    )
+    ))
 
   def table_name(self, *args):
     if not self.__table:
@@ -67,7 +66,8 @@ class Collection(Searchable, Validation, Association):
 
     Logger.time("Transaction begin:")
     start = time()
-    sql_str = """\nINSERT INTO {table_name} ({columns}) VALUES ({values});""".format(
+    sql_str = """INSERT INTO {table_name} ({columns})
+              VALUES ({values});""".format(
         table_name=self.table_name(),
         columns=columns,
         values=values
@@ -89,7 +89,8 @@ class Collection(Searchable, Validation, Association):
 
       values += "'{column}={value}'".format(column=key, value=kwargs[key])
 
-    sql_str = """\nUPDATE {table_name} SET {queries}""".format(self.table_name(), values)
+    sql_str = """UPDATE {table_name}
+              SET {queries}""".format(self.table_name(), values)
     Logger.time("Transaction begin:")
     Logger.query(sql_str)
     cursor.execute(sql_str)
@@ -129,12 +130,20 @@ class Collection(Searchable, Validation, Association):
   def search_all(self, query, associations):
     query = self.build_query(query)
     cursor = db.connection.cursor()
+    start = time()
     cursor.execute(query)
+    Logger.time("{0} loads - {1:.2f}ms".format(
+      self.__class__.__name__,
+      (time() - start) * 1000
+    ))
     return self.get_result(cursor, associations)
 
   def search_one(self, query, associations):
     cursor = db.connection.cursor()
-    query = """SELECT {select_clause} FROM {table_name}{where_clause} LIMIT 1;""".format(
+    query = """SELECT {select_clause}
+            FROM {table_name}
+            {where_clause}
+            LIMIT 1;""".format(
       select_clause=self.build_select(query),
       table_name=self.table_name(),
       where_clause=self.build_conds(query)
@@ -158,7 +167,6 @@ class Collection(Searchable, Validation, Association):
       for i in range(len(result)):
         setattr(obj, columns[i], result[i])
 
-    print(obj)
     return obj
 
   def get_all_key_used(self, assoc_tables, associations):
@@ -291,14 +299,13 @@ class Collection(Searchable, Validation, Association):
     # alias = self.table_name() if len(associations) > 0 else ""
     # alias_clause = " AS {}".format(self.table_name()) if alias != "" else ""
     # need to account for foreign table
-    query_str = """
-    SELECT {} FROM {}{}{};""".format(
+    query_str = """SELECT {} FROM {}{}{};""".format(
       self.build_select(query),
       self.table_name(),
       self.build_conds(query),
       self.build_sort(query)
     )
-    Logger.info(query_str)
+    Logger.query(query_str)
     return query_str
 
   def __iter__(self):

@@ -24,3 +24,7 @@ class Logger:
   @classmethod
   def time(cls, time):
     Logger.info("\033[0m\033[1m{}".format(time))
+
+  @classmethod
+  def representation(cls, string):
+    return "\033[1m\033[35m{}\033[0m".format(string)

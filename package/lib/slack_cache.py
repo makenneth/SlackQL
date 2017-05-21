@@ -1,4 +1,4 @@
-from . import helpers
+from . import helpers, Logger
 
 class Cache(object):
   def __init__(self, callback):
@@ -10,19 +10,34 @@ class Cache(object):
 
   def __setitem__(self, *args):
     self.get_result()
-    return self.callback(self.__collection, self.__conditions, self.__used_associations)
+    return self.results
 
   def __getitem__(self, index):
     self.get_result()
     return self.results[index]
 
-  def __delitem__(self, *args):
+  def __delitem__(self, index):
     self.get_result()
+    del self.results[index]
     return self.results
 
   def __getattr__(self, val):
     self.get_result()
     return self.results
+
+  def __str__(self):
+    if self.results:
+      return repr(self.results)
+    return Logger.representation("<class '{class_name}'>".format(
+      class_name=self.__class__.__name__
+    ))
+
+  def __repr__(self):
+    if self.results:
+      return repr(self.results)
+    return Logger.representation("<class '{class_name}'>".format(
+      class_name=self.__class__.__name__
+    ))
 
   def get_result(self):
     if not self.results:
