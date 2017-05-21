@@ -1,6 +1,5 @@
 import inflection
 import numbers
-# from .cache import Cache
 from .searchable import Searchable
 from .validation import Validation
 from .association import Association
@@ -21,6 +20,28 @@ class Collection(Searchable, Validation, Association):
       self.set_associations()
     for column in self.columns():
       setattr(self, column, kwargs[column] if column in kwargs else None)
+
+  def __str__(self):
+    instance_data = []
+    for col in self.columns():
+      attr_val = getattr(self, col)
+      # if attr_val:
+      instance_data.append("{}={}".format(col, helpers.format_clause_value(attr_val)))
+    return "<class '{class_name}' {{{info}}}>".format(
+      class_name=self.__class__.__name__,
+      info=(", ").join(instance_data)
+    )
+
+  def __repr__(self):
+    instance_data = []
+    for col in self.columns():
+      attr_val = getattr(self, col)
+      # if attr_val:
+      instance_data.append("{}={}".format(col, helpers.format_clause_value(attr_val)))
+    return "<class '{class_name}' {{{info}}}>".format(
+      class_name=self.__class__.__name__,
+      info=(", ").join(instance_data)
+    )
 
   def table_name(self, *args):
     if not self.__table:
@@ -123,15 +144,17 @@ class Collection(Searchable, Validation, Association):
     cursor.execute(query)
     attr = {}
     columns = [tuple[0] for tuple in cursor.description]
+    obj = type(self.__class__.__name__, (Collection,), {})()
     result = cursor.fetchone()
     if not result:
       logger.warning("No such entry found")
       return None
     else:
       for i in range(len(result)):
-        attr[columns[i]] = result[i]
+        setattr(obj, columns[i], result[i])
 
-    return type(self.__class__.__name__, (), attr)
+    print(obj)
+    return obj
 
   def get_all_key_used(self, assoc_tables, associations):
     referenced_keys = {}
@@ -155,11 +178,12 @@ class Collection(Searchable, Validation, Association):
     all_key_referenced = self.get_all_key_used(assoc_tables, associations)
 
     columns = [tuple[0] for tuple in cursor.description]
+    entry_class = type(self_class_name, (Collection,), {})
     for item in cursor.fetchall():
+      new_entry = entry_class()
       for i in range(len(item)):
-        attr[columns[i]] = item[i]
+        setattr(new_entry, columns[i], item[i])
 
-      new_entry = type(self_class_name, (), attr)
       for key in all_key_referenced:
         if not key in result_key_reference:
           result_key_reference[key] = {}

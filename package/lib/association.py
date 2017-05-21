@@ -1,6 +1,6 @@
 import inflection
 from . import logger, repository, helpers
-from .cache import Cache
+from .slack_cache import Cache
 
 
 class Association:

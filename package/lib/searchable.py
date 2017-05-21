@@ -1,8 +1,8 @@
-from .cache import Cache
+from .slack_cache import Cache
 from . import helpers
 from . import logger
 
-class Searchable:
+class Searchable(object):
   def find(self, fid):
     return Cache(self.apply_query).find(fid)
 
