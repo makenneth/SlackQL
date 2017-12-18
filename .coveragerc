@@ -1,2 +1,4 @@
 [report]
 omit = */inflection.py
+       */project_config.py
+       */db_conn.py
