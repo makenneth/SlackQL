@@ -35,9 +35,9 @@ def initialize_files(models, db, spaces):
   with open("./slackql_init.py", "w+") as f:
     db_config = None
     if db == "psql":
-      db_config = "database_engine=\"psql\", port=\"5432\", localhost=\"localhost\" username=\"\" password=\"\""
+      db_config = "database_engine=\"psql\", port=\"5432\", localhost=\"localhost\", username=\"\", password=\"\""
     elif db == "mysql":
-      db_config = "database_engine=\"psql\", port=\"3306\", localhost=\"localhost\" username=\"\" password=\"\""
+      db_config = "database_engine=\"psql\", port=\"3306\", localhost=\"localhost\", username=\"\", password=\"\""
     else:
       db_config = "db_name"
 

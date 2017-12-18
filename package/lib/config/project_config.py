@@ -13,6 +13,7 @@ class Config:
   @classmethod
   def load_files(cls):
     if not cls._loaded:
+      cls._loaded = True
       name_re = re.compile("^(?!__)(.*).py$")
       model_path = os.path.join(cls.project_path, "models")
       sys.path.append(cls.project_path) # set path to be the main directory for loading modules
