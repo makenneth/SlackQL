@@ -10,6 +10,7 @@ class Cache:
     self.__used_associations = []
     self.__collection = "all"
     self.results = []
+    self.__aggregate = {}
 
   def __setitem__(self, *args):
     self.get_result()
@@ -44,7 +45,10 @@ class Cache:
 
   def get_result(self):
     if not self.results:
-      self.results = self.callback(self.__collection, self.__conditions, self.__used_associations)
+      self.results = self.execute()
+
+  def execute(self):
+    return self.callback(self.__collection, self.__conditions, self.__aggregate, self.__used_associations)
 
   def find(self, fid):
     return self.where(id=fid).find_one()
@@ -54,11 +58,11 @@ class Cache:
 
   def find_one(self):
     self.__collection = "one"
-    return self.callback(self.__collection, self.__conditions, self.__used_associations)
+    return self.execute()
 
   def find_all(self):
     self.__collection = "all"
-    return self.callback(self.__collection, self.__conditions, self.__used_associations)
+    return self.execute()
 
   def all(self):
     self.__collection = "all"
@@ -204,7 +208,6 @@ class Cache:
 
   def includes(self, *tables):
     associations = Association.get_associations(self.base_class)
-
     for relations in tables:
       if type(relations) == list:
         for relation in relations:
@@ -216,6 +219,48 @@ class Cache:
         self.__used_associations.append(relations)
 
     return self
+
+  def group(self, *args):
+    group_clause = (", ").join(args)
+    if "group" in self.__aggregate:
+      self.__aggregate["group"] += ", " + group_clause
+    else:
+      self.__aggregate["group"] = group_clause
+    return self
+
+  def having(self, *args, **kwargs):
+    having_clause = (" AND ").join(args)
+
+    if len(kwargs) > 0:
+      kwarg_key, val = "", None
+      for i, (key, val) in enumerate(kwargs.items()):
+        if key != "operator" or key != "is_not":
+          kwarg_key, val = key, val
+
+      if kwarg_key:
+        if not having_clause == "":
+          having_clause += " AND "
+
+        having_clause += "{} {} {}".format(
+          key,
+          kwargs["operator"] if kwargs["operator"] else "=",
+          helpers.format_clause_value(val)
+        )
+
+    if "having" in self.__aggregate:
+      self.__aggregate["having"] += " AND " + having_clause
+    else:
+      self.__aggregate["having"] = having_clause
+
+    return self
+
+  def count(self, *args):
+    if not args:
+      self.__aggregate["count"] = "all"
+    else:
+      self.__aggregate["count"] = args
+
+    return self.execute()
 
   # def __add_join(self, join_type, tables):
   #   if join_type in self.__used_associations:
