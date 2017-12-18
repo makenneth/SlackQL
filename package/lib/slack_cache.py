@@ -30,6 +30,7 @@ class Cache:
     return self.results
 
   def __str__(self):
+    print('cache str')
     if self.results:
       return repr(self.results)
     return Logger.representation("<class '{class_name}'>".format(
@@ -37,6 +38,7 @@ class Cache:
     ))
 
   def __repr__(self):
+    print('cache repr')
     if self.results:
       return repr(self.results)
     return Logger.representation("<class '{class_name}'>".format(
@@ -86,7 +88,7 @@ class Cache:
 
         where_clause += "{} {} {}".format(
           key,
-          kwargs["operator"] if kwargs["operator"] else "=",
+          kwargs["operator"] if "operator" in kwargs else "=",
           helpers.format_clause_value(val)
         )
 

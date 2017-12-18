@@ -15,18 +15,17 @@ class Config:
     if not cls._loaded:
       cls._loaded = True
       name_re = re.compile("^(?!__)(.*).py$")
-      model_path = os.path.join(cls.project_path, "models")
+      model_path = os.path.join(cls.project_path, "models2")
       sys.path.append(cls.project_path) # set path to be the main directory for loading modules
-
       for name in os.listdir(model_path):
         if name_re.match(name):
           model = name[:-3]
           model_class = inflection.camelize(model)
-          module = importlib.import_module("models.{}".format(model))
+          module = importlib.import_module("models2.{}".format(model_class))
 
           imported_class = getattr(module, model_class)
           if not imported_class:
-            logger.error("Unable to find {} in {}, you may not be able to use associations before to initializing.".format(model_class, model))
+            logger.error("Unable to find {} in {}, you may not be able to use associations before initializing.".format(model_class, model))
           else:
             imported_class()
 

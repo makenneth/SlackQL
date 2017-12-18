@@ -5,12 +5,20 @@ Python ORM (ActiveRecord) - largely inspired by ActiveRecord in Ruby on Rails. J
 
 ## Basic Usage
 ### Configuration
-Before running any queries, simply call SlackQL.configure once to configure the connection.
+Before running any queries, you have to:
+1) set the base project path
+2) configure the connection with the database of choice.
+
 ```python
+# bin/setup.py
 import SlackQL
+#set_project_path(rel path, __file__)
+SlackQL.set_project_path("..", __file__)
 SlackQL.configure(database_engine="psql", db_name="twitter")
 ```
+Note: The config file can be named anything and located anywhere, as long as it is called when your server starts.
 
+sqlite3 database will be created at the base path with a name defaulted to name of the project folder.
 parameters:
   - database_engine (currently support: psql,mysql,sqlite3)
   - db_name
@@ -20,9 +28,11 @@ parameters:
   - host (default to localhost)
   - port (default to database default port)
 
-
 ### Defining a Model
+model has to be placed in a folder named "models" with __init__ and be placed in the project root directory
+
 ```python
+# models/user.py
 from SlackQL import Model
 class User(Model):
   def set_validations(self):
@@ -116,7 +126,8 @@ Posts.limit(5)
 ```
 
 #### Todo
-- [ ] associations
+- [ ] aggregates
+- [ ] more options: "LIKE"
 - [ ] migrations
 - [ ] check support for psql, mysql, sqlite3...
 - [ ] more tests

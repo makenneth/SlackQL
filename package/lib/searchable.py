@@ -37,3 +37,12 @@ class Searchable(object):
 
   def order(self, *args, **kwargs):
     return Cache(self.apply_query).order(*args, **kwargs)
+
+  def group(self, *args):
+    return Cache(self.apply_query).group(*args)
+
+  def having(self, *args, **kwargs):
+    return Cache(self.apply_query).having(*args, **kwargs)
+
+  def count(self, *args):
+    return Cache(self.apply_query).count(*args)

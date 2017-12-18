@@ -22,6 +22,10 @@ class Logger:
     Logger.info("\033[36m{}".format(query))
 
   @classmethod
+  def complete(cls, start, status):
+    Logger.info("Transaction {}: {0:.2f}ms".format(status, (time() - start) * 1000))
+
+  @classmethod
   def time(cls, time):
     Logger.info("\033[0m\033[1m{}".format(time))
 

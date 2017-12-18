@@ -26,6 +26,19 @@ class TestMigrationIntegration(unittest.TestCase):
     """
     self.assertEqual(re.sub(r"\s{2,}|\n|\t", '', command), re.sub(r"\s{2,}|\n|\t", '', expected))
 
+  def test_parse_datatypes(self):
+    t = Table("create", "posts")
 
+    return_value = t.parse_datatypes(
+      {
+        "title": Column.text(null=False, index=True, unique=True),
+        "cost": Column.int(null=False)
+      }
+    )
+    indices = ["CREATE INDEX ON posts (title);"]
+    fields = ["title TEXT NOT NULL UNIQUE", "cost INT NOT NULL"]
+    self.assertEqual(len(return_value), 2)
+    self.assertEqual(return_value[0], fields)
+    self.assertEqual(return_value[1], indices)
 
 

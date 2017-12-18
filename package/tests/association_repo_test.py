@@ -6,7 +6,6 @@ class TestAssociationRepoMethods(unittest.TestCase):
     Association.has_many("GroupUser", "UserPosts")
 
     added_associations = Association.get_associations("GroupUser")
-    self.assertFalse(added_associations == {})
     self.assertTrue("user_posts" in added_associations)
 
     user_posts_association = added_associations["user_posts"]

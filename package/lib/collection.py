@@ -27,6 +27,11 @@ class Collection(Searchable, Validation, Association):
       attr_val = getattr(self, col)
       instance_data.append("{}={}".format(col, helpers.format_clause_value(attr_val)))
 
+    for key, value in repository.Association.get_associations(self.__class__.__name__).items():
+      if hasattr(self, key):
+        attr_val = getattr(self, key)
+        instance_data.append("{}={}".format(key, helpers.format_clause_value(attr_val)))
+
     return Logger.representation("<class '{class_name}' {{{info}}}>".format(
       class_name=self.__class__.__name__,
       info=(", ").join(instance_data)
@@ -37,6 +42,12 @@ class Collection(Searchable, Validation, Association):
     for col in self.columns():
       attr_val = getattr(self, col)
       instance_data.append("{}={}".format(col, helpers.format_clause_value(attr_val)))
+
+    # for key, value in repository.Association.get_associations(self.__class__.__name__).items():
+    #   if hasattr(self, key):
+    #     attr_val = getattr(self, key)
+    #     instance_data.append("{}={}".format(key, helpers.format_clause_value(attr_val)))
+
     return Logger.representation("<class '{class_name}' {{{info}}}>".format(
       class_name=self.__class__.__name__,
       info=(", ").join(instance_data)
@@ -65,17 +76,18 @@ class Collection(Searchable, Validation, Association):
         values += "'" + kwargs[key] + "'"
 
     Logger.time("Transaction begin:")
-    start = time()
     sql_str = """INSERT INTO {table_name} ({columns})
               VALUES ({values});""".format(
         table_name=self.table_name(),
         columns=columns,
         values=values
         )
+    ####  *** what happens if there are errors ***
+    start = time()
     Logger.query(sql_str)
     cursor.execute(sql_str)
     db.connection.commit()
-    Logger.time("Transaction Commited: {0:.2f}ms".format((time() - start) * 1000))
+    Logger.complete(start, "Committed")
     self.id = cursor.lastrowid
     return True
 
@@ -91,11 +103,12 @@ class Collection(Searchable, Validation, Association):
 
     sql_str = """UPDATE {table_name}
               SET {queries}""".format(self.table_name(), values)
+    start = time()
     Logger.time("Transaction begin:")
     Logger.query(sql_str)
     cursor.execute(sql_str)
     db.connection.commit()
-    Logger.time("Transaction Commited: {0:.2f}ms".format((time() - start) * 1000))
+    Logger.complete(start, "Committed")
 
     return True
 
@@ -127,8 +140,8 @@ class Collection(Searchable, Validation, Association):
     else:
       return self.search_one(*args)
 
-  def search_all(self, query, associations):
-    query = self.__build_query(query)
+  def search_all(self, query, aggregations, associations):
+    query = self.__build_query(query, aggregations)
     cursor = db.connection.cursor()
     start = time()
     cursor.execute(query)
@@ -138,12 +151,12 @@ class Collection(Searchable, Validation, Association):
     ))
     return self.__get_result(cursor, associations)
 
-  def search_one(self, query, associations):
+  def search_one(self, query, aggregations, associations):
     cursor = db.connection.cursor()
     query = """SELECT {select_clause}
             FROM {table_name}{where_clause}
             LIMIT 1;""".format(
-      select_clause=self.__build_select(query),
+      select_clause=self.__build_select(query, associations),
       table_name=self.table_name(),
       where_clause=self.__build_conds(query)
     )
@@ -155,18 +168,16 @@ class Collection(Searchable, Validation, Association):
       self.__class__.__name__,
       (time() - start) * 1000
     ))
-    attr = {}
     columns = [tuple[0] for tuple in cursor.description]
-    obj = type(self.__class__.__name__, (Collection,), {})()
     result = cursor.fetchone()
     if not result:
       Logger.warning("No such entry found")
       return None
     else:
+      obj = type(self.__class__.__name__, (Collection,), {})()
       for i in range(len(result)):
         setattr(obj, columns[i], result[i])
-
-    return obj
+      return obj
 
   def __get_all_key_used(self, assoc_tables, associations):
     referenced_keys = {}
@@ -260,7 +271,6 @@ class Collection(Searchable, Validation, Association):
     associations = repository.Association.get_associations(self.__class__.__name__)
     keys_referenced = self.__get_all_key_used(assoc_tables, associations)
     result, result_key_reference = self.__fetch_main_result(cursor, keys_referenced)
-
     if len(assoc_tables) > 0:
       self.__fetch_associations(assoc_tables, associations, result, result_key_reference)
 
@@ -287,8 +297,31 @@ class Collection(Searchable, Validation, Association):
 
     return query_str
 
-  def __build_select(self, query):
-    return query["select"] if "select" in query else "*"
+  def __build_select(self, query, aggregation):
+    select_clause = ""
+    if "count" in aggregation:
+      if aggregation["count"] == "all":
+        select_clause += "COUNT(*)"
+      else:
+        select_clause += (", ").join(["COUNT({})".format(agg) for agg in aggregation["count"]])
+
+    if "select" in query:
+      select_clause = query["select"] + " " + select_clause
+    elif select_clause == "":
+      select_clause = "*"
+
+    return select_clause
+
+  def __build_aggregations(self, aggregations):
+    aggregate_str = ""
+
+    if "group" in aggregations:
+      aggregate_str += aggregation["group"]
+
+    if "having" in aggregations:
+      aggregate_str += aggregation["having"]
+
+    return aggregate_str
   # def build_assoc(self, associations):
   #   assocs = ""
 
@@ -361,13 +394,13 @@ class Collection(Searchable, Validation, Association):
         self_ref_key = main_source_relation["foreign_key"]
         other_ref_key = main_source_relation["primary_key"]
 
-      return source_class().includes(relation_name_in_source)
-        .where(**{other_ref_key: getattr(self, self_ref_key)}).find_all()
+      return source_class().includes(relation_name_in_source).where(**{other_ref_key: getattr(self, self_ref_key)}).find_all()
     else:
       class_name = helpers.relation_to_class(relation_name)
 
       related_class = type(class_name, (Collection,), {})
       self_ref_key, other_ref_key = None, None
+
       if association["type"] == "has_many":
         self_ref_key = association["primary_key"]
         other_ref_key = association["foreign_key"]
@@ -377,16 +410,17 @@ class Collection(Searchable, Validation, Association):
 
       return related_class().where(**{other_ref_key: getattr(self, self_ref_key)}).find_all()
 
-  def __build_query(self, query):
+  def __build_query(self, query, aggregations):
     # assocs = self.build_assoc(associations)
     # alias = self.table_name() if len(associations) > 0 else ""
     # alias_clause = " AS {}".format(self.table_name()) if alias != "" else ""
     # need to account for foreign table
-    query_str = """SELECT {} FROM {}{}{};""".format(
-      self.__build_select(query),
+    query_str = """SELECT {} FROM {}{}{}{};""".format(
+      self.__build_select(query, aggregations),
       self.table_name(),
       self.__build_conds(query),
-      self.__build_sort(query)
+      self.__build_sort(query),
+      self.__build_aggregations(aggregations)
     )
     Logger.query(query_str)
     return query_str

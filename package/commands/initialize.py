@@ -1,6 +1,7 @@
 import os, sys, inflection
-
-def create_models(models, spaces):
+import re
+from datetime import datetime
+def create_model(models, spaces):
   if not os.path.exists("models2"):
     print("Creating models directory...")
     os.mkdir("models2")
@@ -28,25 +29,58 @@ def initialize_files(models, db, spaces):
   print("Creating files...")
   create_models(models, spaces)
 
-  if not os.path.exists("migration"):
+  if not os.path.exists("migrations"):
     print("Creating migration directory...")
-    os.mkdir("migration")
+    os.mkdir("migrations")
+
+  if not os.path.exists("config"):
+    print("Creating config directory...")
+    os.mkdir("config")
+
+  with open("./config/slackql.yml", "w+") as f:
+    lines = []
+    if db == "psql":
+      lines = [
+        "database_engine: \"psql\"\n",
+        "port: 5432\n",
+        "localhost: \"localhost\"\n",
+        "username: \"\"\n",
+        "password: \"\"\n",
+      ]
+    elif db == "mysql":
+      lines = [
+        "database_engine: \"mysql\"\n",
+        "port: 3306\n",
+        "localhost: \"localhost\"\n",
+        "username: \"\"\n",
+        "password: \"\"\n",
+      ]
+    else:
+      lines = ["db_name"]
+    f.writelines(lines)
 
   with open("./slackql_init.py", "w+") as f:
-    db_config = None
-    if db == "psql":
-      db_config = "database_engine=\"psql\", port=\"5432\", localhost=\"localhost\", username=\"\", password=\"\""
-    elif db == "mysql":
-      db_config = "database_engine=\"psql\", port=\"3306\", localhost=\"localhost\", username=\"\", password=\"\""
-    else:
-      db_config = "db_name"
-
     f.writelines([
+      "import yaml\n",
       "import SlackQL\n",
       "SlackQL.set_project_path(\".\", __file__)\n",
-      "SlackQL.configure({})\n".format(db_config),
-      "\n"
+      "with open(\"./config/slackql.yml\", \"r\") as stream:\n",
+      "{}SlackQL.configure(yaml.load(stream))\n".format(" " * spaces * 1)
     ])
 
-  print("Done.")
-  print("Please change the database settings in slackql_init.py before running migrations.")
+  print("Files generated :).")
+  print("Please change the database settings in config/slackql.py before running migrations.")
+
+def generate_migration(name, spaces):
+  current_path = os.getcwd()
+  sys.path.append(current_path)
+  date = re.sub(r"[-:.\s]", "", str(datetime.now())[0:-4])
+  file_name = "{}_migration".format(date)
+  with open("./migrations/{}.py".format(file_name), "w+") as f:
+    f.writelines([
+      "from SlackQL import Migration, Column\n\n",
+      "class {}{}(Migration):\n".format(name, date),
+      "{}def change(self):\n".format(" " * spaces * 1),
+      "{}pass".format(" " * spaces * 2)
+    ])
+    print("created migration file")
