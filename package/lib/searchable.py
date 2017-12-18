@@ -15,7 +15,7 @@ class Searchable(object):
     return Cache(self.apply_query).select(*args)
 
   def where_not(self, *args, **kwargs):
-    pass
+    return Cache(self.apply_query).where_not(*args, **kwargs)
 
   def where(self, *args, **kwargs):
     return Cache(self.apply_query).where(*args, **kwargs)
@@ -23,8 +23,14 @@ class Searchable(object):
   def within(self, *args, **kwargs):
     return Cache(self.apply_query).within(*args, **kwargs)
 
+  def not_within(self, *args):
+    return Cache(self.apply_query).not_within(*args)
+
   def between(self, *args, **kwargs):
-    return Cache(self.apply_query).between(*args, **kwargs)
+    return Cache(self.apply_query).between(*args)
+
+  def not_between(self, *args, **kwargs):
+    return Cache(self.apply_query).not_between(*args, **kwargs)
 
   def limit(self, number):
     return Cache(self.apply_query).limit(number)

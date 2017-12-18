@@ -62,7 +62,7 @@ class Cache:
 
   def where(self, *args, **kwargs):
     if len(args) == 0 and len(kwargs) == 0:
-      logger.Info("Where requires at least one arguments. Call will be ignored.")
+      logger.warning("Where requires at least one arguments. Call will be ignored.")
       return self
 
     where_clause = " AND ".join(args)
@@ -70,6 +70,27 @@ class Cache:
       if not where_clause == "":
         where_clause += " AND "
       where_clause += "{} = {}".format(
+        key,
+        helpers.format_clause_value(val)
+      )
+
+    if "where" in self.__conditions:
+      self.__conditions["where"] += " AND " + where_clause
+    else:
+      self.__conditions["where"] = where_clause
+
+    return self
+
+  def not_where(self, *args, **kwargs):
+    if len(args) == 0 and len(kwargs) == 0:
+      logger.warning("Not where requires at least one arguments. Call will be ignored.")
+      return self
+
+    where_clause = " AND ".join(args)
+    for i, (key, val) in enumerate(kwargs.items()):
+      if not where_clause == "":
+        where_clause += " AND "
+      where_clause += "NOT {} = {}".format(
         key,
         helpers.format_clause_value(val)
       )
@@ -121,6 +142,12 @@ class Cache:
     else:
       self.__conditions["between"] = between_clause
     return self
+
+  def not_within(self, *args):
+    return self.within(*args, not=True)
+
+  def not_between(self, *args):
+    return self.between(*args, not=True)
 
   def limit(self, limit):
     if type(limit) != int:
