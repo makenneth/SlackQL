@@ -82,9 +82,9 @@ class Cache:
         if key != "operator" or key != "is_not":
           kwarg_key, val = key, val
 
-      if kwarg_key:
-        if not where_clause == "":
-          where_clause += " AND "
+        if kwarg_key:
+          if not where_clause == "":
+            where_clause += " AND "
 
         where_clause += "{} {} {}".format(
           key,
