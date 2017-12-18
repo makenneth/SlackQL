@@ -4,7 +4,7 @@ class TableMetaClass(type):
   def __getattr__(self, key):
     if key in ["alter", "drop", "create"]:
       def wrapper(*args, **kwargs):
-        return Table(*args, **kwargs)
+        return Table(key, *args, **kwargs)
       return wrapper
     raise AttributeError(key)
 
@@ -35,16 +35,15 @@ class Table(metaclass=TableMetaClass):
   );""".format(self.name, lines)
 
     elif self.method == "drop":
-      return """DROP TABLE {}{}""".format(
+      return """DROP TABLE {}{};""".format(
         self.name,
         " CASCADE" if self.options.get("cascade", False) else ""
       )
     elif self.method == "alter":
-      fields = [column.generate_command(self.name, field) for field, column in self.options.items()]
-
-      return """ALTER TABLE {}{}""".format(
-        ",\n\t".join(fields),
-        self.name
+      fields = [column.generate_command(self.name, field)[0] for field, column in self.options.items()]
+      return """ALTER TABLE {} {};""".format(
+        self.name,
+        ",\n\t".join(fields)
       )
 
   def add_index(self, **kwargs):

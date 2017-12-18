@@ -1,5 +1,5 @@
 import unittest
-from .. import Migration, Datatype
+from .. import Migration, Column, Table
 import re
 class TestMigrationIntegration(unittest.TestCase):
   def setUp(self):
@@ -7,8 +7,8 @@ class TestMigrationIntegration(unittest.TestCase):
 
   def test_create_table(self):
     t = self.m.create_table("groups", # id will be added unless
-      title=Datatype.text(null=False, index=True, unique=True),
-      id=Datatype.int()
+      title=Column.text(null=False, index=True, unique=True),
+      id=Column.int()
     )
     t.add_constraint(unique=("a", "c"), name="product_no")
     t.add_constraint(primary_key=("a", "c"), name="product_pk")
@@ -27,13 +27,13 @@ class TestMigrationIntegration(unittest.TestCase):
     self.assertEqual(re.sub(r"\s{2,}|\n|\t", '', command), re.sub(r"\s{2,}|\n|\t", '', expected))
 
   def test_parse_datatypes(self):
-    t = Table("create", "posts")
+    t = Table("create", "posts",
+      title=Column.text(null=False, index=True, unique=True),
+      cost=Column.int(null=False)
+    )
 
     return_value = t.parse_datatypes(
-      {
-        "title": Column.text(null=False, index=True, unique=True),
-        "cost": Column.int(null=False)
-      }
+
     )
     indices = ["CREATE INDEX ON posts (title);"]
     fields = ["title TEXT NOT NULL UNIQUE", "cost INT NOT NULL"]

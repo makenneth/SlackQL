@@ -30,15 +30,16 @@ class TestTable(unittest.TestCase):
     t = Table("drop", "groups", cascade=True)
 
     command = t.generate_command()
-    expected = """DROP TABLE groups CASCADE"""
+    expected = """DROP TABLE groups CASCADE;"""
     self.assertEqual(re.sub(r"\s{2,}|\n|\t", '', command), re.sub(r"\s{2,}|\n|\t", '', expected))
 
   def test_generate_command_alter(self):
+    column = Column.text()
+    column.method = "alter"
     t = Table("alter", "groups",
-      title=Column.text()
+      title=column
     )
     command = t.generate_command()
-    expected = """ALTER TABLE groups
-      ALTER COLUMN title TYPE TEXT
+    expected = """ALTER TABLE groups ALTER COLUMN title TEXT;
     """
     self.assertEqual(re.sub(r"\s{2,}|\n|\t", '', command), re.sub(r"\s{2,}|\n|\t", '', expected))

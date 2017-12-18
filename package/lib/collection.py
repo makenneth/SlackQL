@@ -198,7 +198,6 @@ class Collection(Searchable, Validation, Association):
     columns = [tuple[0] for tuple in cursor.description]
     main_class = type(self.__class__.__name__, (Collection,), {})
     result, result_key_reference = [], {}
-
     for item in cursor.fetchall():
       new_entry = main_class()
       for i in range(len(item)):

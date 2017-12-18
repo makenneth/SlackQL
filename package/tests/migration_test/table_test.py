@@ -8,7 +8,7 @@ class TestTable(unittest.TestCase):
     m = MagicMock(return_value=None)
     __init__ = Table.__init__
     Table.__init__ = m
-    Table.create("create", "clubs")
+    Table.create("clubs")
     m.assert_called()
     m.assert_called_with("create", "clubs")
     m.reset_mock()

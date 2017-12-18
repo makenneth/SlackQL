@@ -20,7 +20,7 @@ class Migration:
     columns = {}
     for name, column in kwargs.items():
       columns["name"] = column.set_method("add")
-    new_migration = Table.alter(name, "alter", **column)
+    new_migration = Table.alter(name, **column)
     self.migrations.append(new_migration)
     return new_migration
 
@@ -28,7 +28,7 @@ class Migration:
     columns = {}
     for name, column in kwargs.items():
       columns["name"] = column.set_method("drop")
-    new_migration = Table.alter(name, "alter", **columns)
+    new_migration = Table.drop(name, **columns)
     self.migrations.append(new_migration)
     return new_migration
 
@@ -37,13 +37,13 @@ class Migration:
     for name, column in kwargs.items():
       if not column.method:
         columns["name"] = column.set_method("alter")
-    new_migration = Table.alter(name, "alter", **columns)
+    new_migration = Table.alter(name, **columns)
     self.migrations.append(new_migration)
     return new_migration
 
   def rename_column(self, column, new_name):
     columns = {column: Column({"new_name": new_name}, None, "rename")}
-    new_migration = Table.alter(name, "alter", **columns)
+    new_migration = Table.alter(name, **columns)
     self.migrations.append(command)
     return new_migration
 
