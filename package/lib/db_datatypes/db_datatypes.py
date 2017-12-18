@@ -68,13 +68,20 @@ class DataTypesMetaclass(type):
       return wrapper
     raise AttributeError(key)
 
+  def vertify_options(self, options):
+    if "using_method" in options:
+      if options["using_method"] not in ["btree", "hash", "gist", "spgist", "gin", "brin"]:
+        raise ValueError("""
+        {} not a valid value for 'using_method'. Valid options are: 'btree', 'hash', 'gist', 'spgist', 'gin', and 'brin'
+        """.format(options["using_method"]))
+
   def get_index(self, table, column, options):
     if type(options) is bool:
       return "CREATE INDEX ON {table_name} ({column_name});".format(
           table_name=table, column_name=column
       )
     else:
-      # ["btree", "hash", "gist", "spgist", "gin", "brin"]
+      self.verify_options(options)
       return """
       CREATE{unique} INDEX{concurrently}{if_not_exists}{name} ON {table_name}{using_method} ({column_name});
       """.format(
@@ -92,11 +99,14 @@ class DataTypesMetaclass(type):
     for constraint, value in options.items():
       if constraint in CONSTRAINTS:
         constraint_clause.append(CONSTRAINTS[constraint](value))
-      else:
-        raise ValueError("{} not suppored".format(constraint))
-
-    return "{} {}{}{}".format(column, datatype.upper(), " " if len(constraint_clause) else "", " ".join(constraint_clause))
-
+      elif constraint != "index":
+        raise ValueError("Constraint {} not supported".format(constraint))
+    return "{} {}{}{}".format(
+      column,
+      datatype.upper(),
+      " " if len(constraint_clause) else "",
+      " ".join(constraint_clause)
+    )
 
   def parse_datatype_options(self, datatype, **kwargs):
     # big problem. we don't have column name
@@ -104,10 +114,10 @@ class DataTypesMetaclass(type):
     def closure(table, column):
       index_clause = None
 
-      if "index" in kwargs.items():
-        index_clause = self.get_index(table, column, kwargs.items()["index"])
+      if "index" in kwargs:
+        index_clause = self.get_index(table, column, kwargs["index"])
 
-      return [self.get_column_clause(column, datatype, kwargs), index_clause]
+      return self.get_column_clause(column, datatype, kwargs), index_clause
     return closure
 
 class DBDatatypes(metaclass=DataTypesMetaclass):
