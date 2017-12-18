@@ -35,38 +35,22 @@ class Validation(object):
       raise ValidationError("At least one field is required", "No argument is passed in add_validations function.")
     if not kwargs:
       raise ValidationError("At least one condition is required", "No argument is passed in add_validations function.")
-    if "presence" in kwargs:
-      if not isinstance(kwargs["presence"], bool):
-        raise TypeError("Type mismatch", "Presence takes a boolean")
-      for field in args:
-        self.__add_validations(callee_class, field, "presence", kwargs["presence"])
 
-    if "uniqueness" in kwargs:
-      if not isinstance(kwargs["uniqueness"], bool):
-        raise TypeError("Type mismatch", "Uniqueness takes a boolean")
-      for field in args:
-        self.__add_validations(callee_class, field, "uniqueness", kwargs["uniqueness"])
+    validations = [
+      { "validation": "presence", "type": bool, "error": "Presence requires a boolean" },
+      { "validation": "uniqueness", "type": bool, "error": "Uniqueness requires a boolean" },
+      { "validation": "inclusion", "type": list, "error": "Inclusion requires a list" },
+      { "validation": "length", "type": dict, "error": "Length has to be a dict with max and/or min" },
+      { "validation": "range", "type": dict, "error": "Length has to be a dict with max and/or min" },
+    ]
+    for validation in validations:
+      validation_type = validation["validation"]
 
-    if "inclusion" in kwargs:
-      if not isinstance(kwargs["inclusion"], list):
-        raise TypeError("Type mismatch", "Inclusion takes a list")
-
-      for field in args:
-        self.__add_validations(callee_class, field, "inclusion", kwargs["inclusion"])
-
-    if "length" in kwargs:
-      if not isinstance(kwargs["length"], dict):
-        raise TypeError("Type mismatch", "Length has to be a dict with max and min")
-
-      for field in args:
-        self.__add_validations(callee_class, field, "length", kwargs["length"])
-
-    if "range" in kwargs:
-      if not isinstance(kwargs["range"], dict):
-        raise TypeError("Type mistch", "Range has to be a dict with max and min")
-
-      for field in args:
-        self.__add_validations(callee_class, field, "range", kwargs["range"])
+      if validation_type in kwargs:
+        if not isinstance(kwargs[validation_type], validation["type"]):
+          raise TypeError("Type mismatch", validation["error"])
+        for field in args:
+          self.__add_validations(callee_class, field, validation_type, kwargs[validation_type])
 
   def __add_validations(self, callee_class, field, validation, value):
     if callee_class not in Validation._validations:
