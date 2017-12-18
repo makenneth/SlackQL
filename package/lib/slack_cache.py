@@ -1,8 +1,11 @@
 from . import helpers, Logger
+from .repository import Association
+import inflection
 
 class Cache:
   def __init__(self, callback):
     self.callback = callback
+    self.base_class = callback.__self__.__class__.__name__
     self.__conditions = {}
     self.__used_associations = []
     self.__collection = "all"
@@ -161,7 +164,18 @@ class Cache:
     return self
 
   def includes(self, *tables):
-    self.__used_associations.extend(tables)
+    associations = Association.get_associations(self.base_class)
+
+    for relations in tables:
+      if type(relations) == list:
+        for relation in relations:
+          relation_name = inflection.underscore(relation)
+          if relation_name in associations:
+            self.__used_associations.append(relation_name)
+            break
+      else:
+        self.__used_associations.append(relations)
+
     return self
 
   # def __add_join(self, join_type, tables):
