@@ -1,2 +1,7 @@
 class Column:
-  pass
+  def add_column(self):
+    pass
+
+
+  def remove_column(self):
+    pass

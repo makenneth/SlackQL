@@ -6,4 +6,4 @@ from ..lib.slack_cache import Cache
 from ..lib.searchable import Searchable
 from ..lib import Migration, Column, Table
 from ..lib import db, DBConn
-from ..lib import DBDatatypes
+from ..lib import Datatype

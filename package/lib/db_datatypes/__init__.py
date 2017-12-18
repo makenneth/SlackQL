@@ -1,1 +1,1 @@
-from .db_datatypes import DBDatatypes
+from .db_datatypes import DBDatatypes as Datatype

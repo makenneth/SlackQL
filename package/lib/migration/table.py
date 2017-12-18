@@ -20,6 +20,7 @@ ADDITIONAL = {
     "values": ["cascade", "restrict"]
   }
 }
+
 class Table:
   def __init__(self, name, **kwargs):
     fields, indices = self.parse_datatypes(name, kwargs)
@@ -39,13 +40,11 @@ class Table:
     return fields, indices
 
   def generate_command(self):
-    fields = ",\n".join(self.fields)
-    constraints = ",\n".join(self.constraints)
+    lines = ",\n    ".join(self.fields + self.constraints)
 
     return """CREATE TABLE {} (
-      {}{}
-      {}
-    );""".format(self.name, fields, "," if len(constraints) > 0 else "", constraints)
+    {}
+);""".format(self.name, lines)
 
   def add_foreign_constraint(self, value, options):
     constraint = CONSTRAINTS["foreign_key"](value)
@@ -62,7 +61,7 @@ class Table:
     constraint_strs = []
     for constraint, value in kwargs.items():
       if constraint == "name":
-        constraint_strs.insert(0, "CONSTRAINTS {}".format(value))
+        constraint_strs.insert(0, "CONSTRAINT {}".format(value))
       elif constraint in CONSTRAINTS:
         if constraint == "foreign_key" :
           constraint_strs.append(self.add_foreign_constraint(value, kwargs))
@@ -78,5 +77,9 @@ class Table:
           raise ValueError("Valid arguments for {} are".format(constraint, " ".join(valid_options)))
       else:
         raise ValueError("Constraint {}: not valid".format(constraint))
-
     self.constraints.append((" ").join(constraint_strs))
+
+    return self
+
+  def add_index(self, **kwargs):
+    return self
