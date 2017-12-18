@@ -1,5 +1,5 @@
 import inflection
-from . import repository, helpers
+from . import repository, helpers, Logger
 from .slack_cache import Cache
 
 

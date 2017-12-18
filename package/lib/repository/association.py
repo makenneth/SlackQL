@@ -33,7 +33,7 @@ class Association(object):
 
     else:
       primary_class = callee
-      foreign_class = inflection.singularize(assoc_table) if "foreign_class" not in kwargs else kwargs["foreign_class"]
+      foreign_class = inflection.titleize(inflection.singularize(assoc_table)) if "foreign_class" not in kwargs else kwargs["foreign_class"]
       p_key = "id" if "primary_key" not in kwargs else kwargs["primary_key"]
       f_key = inflection.underscore(callee) + "_id" if "foreign_key" not in kwargs else kwargs["foreign_key"]
 
@@ -52,7 +52,7 @@ class Association(object):
       return
 
     cls.__associations[callee] = {}
-    primary_class = assoc_table
+    primary_class = inflection.titleize(assoc_table)
     foreign_class = callee if "foreign_class" not in kwargs else kwargs["foreign_class"]
     p_key = "id" if "primary_key" not in kwargs else kwargs["primary_key"]
     f_key = "{}_id".format(inflection.underscore(assoc_table)) if "foreign_key" not in kwargs else kwargs["foreign_key"]
