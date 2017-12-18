@@ -320,6 +320,63 @@ class Collection(Searchable, Validation, Association):
 
   #   return assocs
 
+  def __query_assoc(self, relation_name):
+    # does relation exists in associations
+    associations = repository.Association.get_associations(self.__class__.__name__)
+    association = associations[relation_name]
+    # is it an indirect relationship?
+    if "relation" in association:
+
+      # does the source relation exist?
+      if not association["source"] in associations:
+        Logger.error("Source relation {} is not defined in {}.".format(association["source"], self.__class__.__name__))
+        return None
+
+      source_class_name = helpers.relation_to_class(association["source"])
+
+      # indirect relationship could be through has_many or has_one
+      possible_through_relations = [inflection.pluralize(relation_name), inflection.singularize(relation_name)]
+      source_associations = repository.Association.get_associations(source_class_name)
+
+      # is the through relation defined in source?
+      if not source_associations:
+        Logger.error("Relations are not defined in {}.".format(source_class_name))
+        return None
+
+      # find the acutal name of the association in source class
+      relation_name_in_source = next((rel for rel in possible_through_relations if rel in source_associations), None)
+      if not relation_name_in_source:
+        Logger.error("Relation {} does not exist in {}.".format(relation_name, source_class_name))
+        return None
+
+      source_class = type(source_class_name, (Collection,), {})
+
+      main_source_relation = associations[association["source"]]
+      self_ref_key, other_ref_key = None, None
+
+      if main_source_relation["type"] == "has_many":
+        self_ref_key = main_source_relation["primary_key"]
+        other_ref_key = main_source_relation["foreign_key"]
+      else:
+        self_ref_key = main_source_relation["foreign_key"]
+        other_ref_key = main_source_relation["primary_key"]
+
+      return source_class().includes(relation_name_in_source)
+        .where(**{other_ref_key: getattr(self, self_ref_key)}).find_all()
+    else:
+      class_name = helpers.relation_to_class(relation_name)
+
+      related_class = type(class_name, (Collection,), {})
+      self_ref_key, other_ref_key = None, None
+      if association["type"] == "has_many":
+        self_ref_key = association["primary_key"]
+        other_ref_key = association["foreign_key"]
+      else:
+        self_ref_key = association["foreign_key"]
+        other_ref_key = association["primary_key"]
+
+      return related_class().where(**{other_ref_key: getattr(self, self_ref_key)}).find_all()
+
   def __build_query(self, query):
     # assocs = self.build_assoc(associations)
     # alias = self.table_name() if len(associations) > 0 else ""
@@ -344,6 +401,10 @@ class Collection(Searchable, Validation, Association):
       def wrapper(*args, **kwargs):
         getattr(repository.Association, val)(self.__class__.__name__, *args, **kwargs)
       return wrapper
+
+    assoc = repository.Association.get_associations(self.__class__.__name__)
+    if assoc and val in assoc:
+      return self.__query_assoc(val)
     elif callable(val):
       Logger.error("Invalid method {}".format(val.__name__))
     else:
