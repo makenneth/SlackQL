@@ -56,6 +56,10 @@ class Cache:
     self.__collection = "one"
     return self.callback(self.__collection, self.__conditions, self.__used_associations)
 
+  def find_all(self):
+    self.__collection = "all"
+    return self.callback(self.__collection, self.__conditions, self.__used_associations)
+
   def all(self):
     self.__collection = "all"
     return self
@@ -66,13 +70,21 @@ class Cache:
       return self
 
     where_clause = " AND ".join(args)
-    for i, (key, val) in enumerate(kwargs.items()):
-      if not where_clause == "":
-        where_clause += " AND "
-      where_clause += "{} = {}".format(
-        key,
-        helpers.format_clause_value(val)
-      )
+    if len(kwargs) > 0:
+      kwarg_key, val = "", None
+      for i, (key, val) in enumerate(kwargs.items()):
+        if key != "operator" or key != "is_not":
+          kwarg_key, val = key, val
+
+      if kwarg_key:
+        if not where_clause == "":
+          where_clause += " AND "
+
+        where_clause += "{} {} {}".format(
+          key,
+          kwargs["operator"] if kwargs["operator"] else "=",
+          helpers.format_clause_value(val)
+        )
 
     if "where" in self.__conditions:
       self.__conditions["where"] += " AND " + where_clause
@@ -108,7 +120,7 @@ class Cache:
       within_values = (", ").join([helpers.format_clause_value(val) for val in args[1]])
       in_str = "{} {}IN ({})".format(
         args[0],
-        "" if not kwargs or not kwargs["not"] else "{} ".format("NOT"),
+        "" if not kwargs or not kwargs["is_not"] else "{} ".format("NOT"),
         within_values
       )
     else:
@@ -130,7 +142,7 @@ class Cache:
     if len(args) == 3:
       between_clause = "{} {}BETWEEN {} AND {}".format(
         args[0],
-        "" if not kwargs or not kwargs["not"] else "{} ".format("NOT"),
+        "" if not kwargs or not kwargs["is_not"] else "{} ".format("NOT"),
         helpers.format_clause_value(args[1]),
         helpers.format_clause_value(args[2])
       )
@@ -144,10 +156,10 @@ class Cache:
     return self
 
   def not_within(self, *args):
-    return self.within(*args, not=True)
+    return self.within(*args, is_not=True)
 
   def not_between(self, *args):
-    return self.between(*args, not=True)
+    return self.between(*args, is_not=True)
 
   def limit(self, limit):
     if type(limit) != int:
