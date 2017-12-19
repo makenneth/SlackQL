@@ -8,6 +8,12 @@ class TestColumn(unittest.TestCase):
     l = Column("int", {}).get_index("users", "email", True)
     self.assertTrue(l == "CREATE INDEX ON users (email);")
 
+  def test_set_method(self):
+    l = Column("int", {})
+    self.assertEqual(l.method, None)
+    l.set_method("create")
+    self.assertEqual(l.method, "create")
+
   def test_get_index_with_dict(self):
     """ Test unique index """
     l1 = Column("varchar", {}).get_index("users", "email", { "unique": True, "name": 'unique_email_idx' })
@@ -45,6 +51,11 @@ class TestColumn(unittest.TestCase):
     cl = cl(unique=True)
     self.assertTrue(type(cl) == Column)
 
+  def test_getattr_set(self):
+    cl = Column.set(null=False)
+    self.assertTrue(type(cl) == Column)
+    self.assertTrue(cl.method == "set")
+
   def test_getattr_char_length_test(self):
     with self.assertRaises(TypeError) as context:
       Column.varchar()
@@ -61,7 +72,7 @@ class TestColumn(unittest.TestCase):
     # this might be an error... should be 'abc'?
     c = Column({"default": "abc"}, None, "set")
     command, = c.generate_command("post", "title")
-    self.assertEqual(command, "ALTER COLUMN title SET DEFAULT abc")
+    self.assertEqual(command, "ALTER COLUMN title SET DEFAULT \"abc\"")
     c = Column({"null": True}, None, "set")
     command, = c.generate_command("post", "title")
     self.assertEqual(command, "ALTER COLUMN title DROP NOT NULL")
@@ -69,7 +80,13 @@ class TestColumn(unittest.TestCase):
     command, = c.generate_command("post", "title")
     self.assertEqual(command, "ALTER COLUMN title SET NOT NULL")
 
-  def test_generate_command_set(self):
+  def test_generate_command_drop(self):
     c = Column({"if_exists": True, "on_delete": "cascade"}, None, "drop")
     command, = c.generate_command("post", "title")
     self.assertEqual(command, "DROP COLUMN IF EXISTS title ON DELETE CASCADE")
+
+  def test_generate_command_set_validations(self):
+    c = Column({"not_supported_string": None}, None, "set")
+    with self.assertRaises(ValueError) as context:
+      command, = c.generate_command("post", "title")
+

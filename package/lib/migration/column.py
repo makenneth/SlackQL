@@ -1,5 +1,6 @@
 from .constraint import Constraint
 from .datatype import Datatype
+import json
 
 class ColumnMetaClass(type):
   def __getattr__(self, key):
@@ -58,7 +59,7 @@ class Column(metaclass=ColumnMetaClass):
       return ("RENAME COLUMN {} TO {}".format(column, self.options["new_name"]),)
 
     elif self.method == "set":
-      constraint, value = self.options.items()[0]
+      constraint, value = list(self.options.items())[0]
       if constraint not in ["null", "default"]:
         raise ValueError("""
         {} is not something you can set (yet). Valid options are ["null", "default"].
@@ -67,7 +68,7 @@ class Column(metaclass=ColumnMetaClass):
       if constraint == "default":
         change = "{} DEFAULT{}".format(
           "SET" if value else "DROP",
-          " ({})".format(value) if value else ""
+          " {}".format(json.dumps(value)) if value else ""
         )
       elif constraint == "null":
         change = "{} NOT NULL".format("DROP" if value else "SET")
